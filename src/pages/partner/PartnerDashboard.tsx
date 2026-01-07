@@ -24,14 +24,10 @@ export default function PartnerDashboard() {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    if (!loading && userRole !== 'partner') {
-      navigate('/dashboard');
-      return;
-    }
     if (!loading && user) {
       loadPartnerData();
     }
-  }, [userRole, loading, user, navigate]);
+  }, [loading, user, navigate]);
 
   const loadPartnerData = async () => {
     try {
@@ -42,8 +38,8 @@ export default function PartnerDashboard() {
         .maybeSingle();
 
       if (!partnerData) {
-        toast.error('Partner account not found');
-        navigate('/dashboard');
+        // Redirect to partner registration if no partner account
+        navigate('/partner/register');
         return;
       }
 
