@@ -22,6 +22,7 @@ import AdminSettings from "./pages/admin/AdminSettings";
 
 // Partner Pages
 import PartnerDashboard from "./pages/partner/PartnerDashboard";
+import PartnerRegister from "./pages/partner/PartnerRegister";
 import PartnerGenerate from "./pages/partner/PartnerGenerate";
 import PartnerClients from "./pages/partner/PartnerClients";
 import PartnerReports from "./pages/partner/PartnerReports";
@@ -54,6 +55,7 @@ const App = () => (
             
             {/* Partner Routes */}
             <Route path="/partner" element={<PartnerDashboard />} />
+            <Route path="/partner/register" element={<PartnerRegister />} />
             <Route path="/partner/generate" element={<PartnerGenerate />} />
             <Route path="/partner/clients" element={<PartnerClients />} />
             <Route path="/partner/reports" element={<PartnerReports />} />
