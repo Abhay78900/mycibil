@@ -247,7 +247,17 @@ export default function PartnerGenerate() {
                       }}
                     >
                       <div className="flex items-center gap-3">
-                        <Checkbox checked={selectedBureaus.includes(bureau.id)} />
+                        <div className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
+                          selectedBureaus.includes(bureau.id)
+                            ? 'bg-primary border-primary'
+                            : 'border-muted-foreground'
+                        }`}>
+                          {selectedBureaus.includes(bureau.id) && (
+                            <svg className="w-3 h-3 text-primary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </div>
                         <span className="font-medium">{bureau.label}</span>
                       </div>
                       <span className="text-sm text-muted-foreground">₹{bureau.price}</span>
