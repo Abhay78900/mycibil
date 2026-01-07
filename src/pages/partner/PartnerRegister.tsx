@@ -40,28 +40,19 @@ export default function PartnerRegister() {
     try {
       const franchiseId = generateFranchiseId();
       
-      const { data: partner, error } = await supabase
-        .from('partners')
-        .insert({
-          name: formData.businessName,
-          owner_id: user?.id,
-          franchise_id: franchiseId,
-          wallet_balance: 0,
-          commission_rate: 10,
-          status: 'active',
-        })
-        .select()
-        .single();
+      // Call edge function to bypass RLS
+      const { data, error } = await supabase.functions.invoke('register-partner', {
+        body: {
+          businessName: formData.businessName,
+          phone: formData.phone,
+          franchiseId
+        }
+      });
 
       if (error) throw error;
+      if (data.error) throw new Error(data.error);
 
-      // Update user role to partner
-      await supabase
-        .from('user_roles')
-        .update({ role: 'partner' })
-        .eq('user_id', user?.id);
-
-      setRegisteredPartner(partner);
+      setRegisteredPartner(data.partner);
       toast.success('Partner account created successfully!');
     } catch (error: any) {
       console.error('Registration error:', error);
