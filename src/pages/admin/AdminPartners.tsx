@@ -3,29 +3,45 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import AdminSidebar from '@/components/admin/AdminSidebar';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Search, Building2, Loader2, Plus, Wallet, Percent } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Search, Building2, Loader2, Plus, Wallet, Percent, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
-import { format } from 'date-fns';
+
+interface Partner {
+  id: string;
+  name: string;
+  franchise_id: string;
+  owner_id: string;
+  wallet_balance: number;
+  commission_rate: number;
+  total_revenue: number;
+  status: string;
+}
 
 export default function AdminPartners() {
   const { userRole, signOut, loading } = useAuth();
   const navigate = useNavigate();
-  const [partners, setPartners] = useState<any[]>([]);
+  const [partners, setPartners] = useState<Partner[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [newPartner, setNewPartner] = useState({
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [editingPartner, setEditingPartner] = useState<Partner | null>(null);
+  const [formData, setFormData] = useState({
     name: '',
-    franchise_id: '',
-    owner_id: '',
-    commission_rate: 10,
+    email: '',
+    password: '',
+    commission_rate: '10',
+    wallet_balance: '0',
+    status: 'active',
   });
 
   useEffect(() => {
@@ -57,6 +73,95 @@ export default function AdminPartners() {
     navigate('/');
   };
 
+  const generateFranchiseId = () => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let result = 'FR-';
+    for (let i = 0; i < 6; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+  };
+
+  const handleAddPartner = async () => {
+    if (!formData.name || !formData.email || !formData.password) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/register-partner`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+          partnerName: formData.name,
+          franchiseId: generateFranchiseId(),
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to create partner');
+      }
+
+      toast.success('Partner added successfully!');
+      setIsAddDialogOpen(false);
+      setFormData({ name: '', email: '', password: '', commission_rate: '10', wallet_balance: '0', status: 'active' });
+      loadPartners();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to add partner');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleEditPartner = async () => {
+    if (!editingPartner) return;
+
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('partners')
+        .update({
+          name: formData.name,
+          commission_rate: parseFloat(formData.commission_rate),
+          wallet_balance: parseFloat(formData.wallet_balance),
+          status: formData.status,
+        })
+        .eq('id', editingPartner.id);
+
+      if (error) throw error;
+
+      toast.success('Partner updated successfully!');
+      setIsEditDialogOpen(false);
+      setEditingPartner(null);
+      loadPartners();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to update partner');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const openEditDialog = (partner: Partner) => {
+    setEditingPartner(partner);
+    setFormData({
+      name: partner.name,
+      email: '',
+      password: '',
+      commission_rate: String(partner.commission_rate),
+      wallet_balance: String(partner.wallet_balance),
+      status: partner.status || 'active',
+    });
+    setIsEditDialogOpen(true);
+  };
+
   const filteredPartners = partners.filter(partner => 
     partner.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     partner.franchise_id?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -81,10 +186,19 @@ export default function AdminPartners() {
               <h1 className="text-3xl font-bold text-foreground">Partner Management</h1>
               <p className="text-muted-foreground mt-1">Manage franchise partners</p>
             </div>
-            <Badge variant="outline" className="text-lg px-4 py-2">
-              <Building2 className="w-4 h-4 mr-2" />
-              {partners.length} Partners
-            </Badge>
+            <div className="flex items-center gap-4">
+              <Badge variant="outline" className="text-lg px-4 py-2">
+                <Building2 className="w-4 h-4 mr-2" />
+                {partners.length} Partners
+              </Badge>
+              <Button onClick={() => {
+                setFormData({ name: '', email: '', password: '', commission_rate: '10', wallet_balance: '0', status: 'active' });
+                setIsAddDialogOpen(true);
+              }}>
+                <Plus className="w-4 h-4 mr-2" />
+                Add Partner
+              </Button>
+            </div>
           </div>
 
           <Card>
@@ -111,6 +225,7 @@ export default function AdminPartners() {
                     <TableHead>Commission</TableHead>
                     <TableHead>Revenue</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -142,7 +257,7 @@ export default function AdminPartners() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <span className="font-bold text-success">
+                        <span className="font-bold text-green-600">
                           ₹{Number(partner.total_revenue || 0).toLocaleString()}
                         </span>
                       </TableCell>
@@ -150,6 +265,11 @@ export default function AdminPartners() {
                         <Badge variant={partner.status === 'active' ? 'default' : 'secondary'}>
                           {partner.status?.toUpperCase()}
                         </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Button variant="ghost" size="sm" onClick={() => openEditDialog(partner)}>
+                          <Pencil className="w-4 h-4" />
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -162,6 +282,113 @@ export default function AdminPartners() {
           </Card>
         </div>
       </main>
+
+      {/* Add Partner Dialog */}
+      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add New Partner</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Partner Name *</Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="Enter partner name"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email *</Label>
+              <Input
+                id="email"
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                placeholder="partner@example.com"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Password *</Label>
+              <Input
+                id="password"
+                type="password"
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                placeholder="Create a password"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="commission">Commission Rate (%)</Label>
+              <Input
+                id="commission"
+                type="number"
+                value={formData.commission_rate}
+                onChange={(e) => setFormData({ ...formData, commission_rate: e.target.value })}
+              />
+            </div>
+            <Button className="w-full" onClick={handleAddPartner} disabled={isSaving}>
+              {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
+              Add Partner
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Partner Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Partner</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-name">Partner Name</Label>
+              <Input
+                id="edit-name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-commission">Commission Rate (%)</Label>
+              <Input
+                id="edit-commission"
+                type="number"
+                value={formData.commission_rate}
+                onChange={(e) => setFormData({ ...formData, commission_rate: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-wallet">Wallet Balance (₹)</Label>
+              <Input
+                id="edit-wallet"
+                type="number"
+                value={formData.wallet_balance}
+                onChange={(e) => setFormData({ ...formData, wallet_balance: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-status">Status</Label>
+              <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                  <SelectItem value="suspended">Suspended</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Button className="w-full" onClick={handleEditPartner} disabled={isSaving}>
+              {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Pencil className="w-4 h-4 mr-2" />}
+              Update Partner
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
