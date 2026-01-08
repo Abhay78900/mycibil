@@ -4,6 +4,9 @@ const PAGE_ROUTES: Record<string, string> = {
   AdminReportsRepository: '/admin/reports',
   PartnerReports: '/partner/reports',
   SelectReports: '/check-score',
+  CheckScore: '/check-score',
+  UnlockReport: '/payment',
+  CreditReport: '/credit-report',
 };
 
 export function createPageUrl(pageName: string): string {
