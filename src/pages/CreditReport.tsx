@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
@@ -20,14 +20,22 @@ import ScoreRepairCTA from '@/components/credit/ScoreRepairCTA';
 import AIReportAnalysis from '@/components/credit/AIReportAnalysis';
 import { CreditReport as CreditReportType } from '@/types';
 import { bureauConfig } from '@/utils/bureauMapping';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function CreditReport() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
+  const { userRole } = useAuth();
   const [report, setReport] = useState<CreditReportType | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedBureau, setSelectedBureau] = useState('cibil');
   const reportRef = useRef<HTMLDivElement>(null);
+  
+  // Track referrer for proper back navigation
+  const referrer = searchParams.get('ref') || (location.state as any)?.from || 'dashboard';
+  const isAdmin = userRole === 'admin';
+  const isPartner = userRole === 'partner';
 
   useEffect(() => {
     loadReport();
@@ -261,8 +269,22 @@ completeness and veracity of the information submitted.
     );
   }
 
-  // Check if report is locked
-  if (report.report_status === 'locked') {
+  // Handle back navigation - go to originating portal
+  const handleBackNavigation = () => {
+    switch (referrer) {
+      case 'admin':
+        navigate(createPageUrl('AdminReportsRepository'));
+        break;
+      case 'partner':
+        navigate(createPageUrl('PartnerReports'));
+        break;
+      default:
+        navigate(createPageUrl('Dashboard'));
+    }
+  };
+
+  // Check if report is locked - Admins and Partners can bypass lock
+  if (report.report_status === 'locked' && !isAdmin && !isPartner) {
     const bureauCount = report.selected_bureaus?.length || 
       [report.cibil_score, report.experian_score, report.equifax_score, report.crif_score].filter(s => s).length || 1;
     const totalAmount = bureauCount * 99;
@@ -302,10 +324,10 @@ completeness and veracity of the information submitted.
           </Button>
           <Button
             variant="ghost"
-            onClick={() => navigate(createPageUrl('Dashboard'))}
+            onClick={handleBackNavigation}
             className="w-full mt-3 text-slate-400"
           >
-            Back to Dashboard
+            Back
           </Button>
         </div>
       </div>
@@ -319,7 +341,7 @@ completeness and veracity of the information submitted.
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <Button variant="ghost" size="icon" className="text-slate-400 hover:text-white" onClick={() => navigate(createPageUrl('Dashboard'))}>
+              <Button variant="ghost" size="icon" className="text-slate-400 hover:text-white" onClick={handleBackNavigation}>
                 <ArrowLeft className="w-5 h-5" />
               </Button>
               <div className="flex items-center gap-3">
@@ -328,7 +350,12 @@ completeness and veracity of the information submitted.
                 </div>
                 <div>
                   <h1 className="text-xl font-bold text-white">Credit Report</h1>
-                  <p className="text-sm text-slate-400">Individual Bureau Reports</p>
+                  <p className="text-sm text-slate-400">
+                    {report.full_name} • {report.pan_number}
+                    {(isAdmin || isPartner) && report.report_status === 'locked' && (
+                      <span className="ml-2 text-amber-400">(Locked - Admin View)</span>
+                    )}
+                  </p>
                 </div>
               </div>
             </div>
