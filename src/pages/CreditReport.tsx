@@ -82,7 +82,7 @@ export default function CreditReport() {
       <main className="max-w-7xl mx-auto px-4 py-8 md:px-8">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" onClick={() => navigate('/dashboard')} className="gap-2">
+            <Button variant="ghost" onClick={() => navigate(-1)} className="gap-2">
               <ArrowLeft className="w-4 h-4" />
               Back
             </Button>
