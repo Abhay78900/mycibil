@@ -4,8 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CreditCard, ArrowLeft, LogOut, Download, RefreshCw, Loader2 } from 'lucide-react';
-import BureauScoreCards from '@/components/credit/BureauScoreCards';
+import { CreditCard, ArrowLeft, LogOut, Download, RefreshCw, Loader2, Lock } from 'lucide-react';
 import BureauReportView from '@/components/credit/BureauReportView';
 import ScoreRepairCTA from '@/components/credit/ScoreRepairCTA';
 import ImprovementTips from '@/components/credit/ImprovementTips';
@@ -14,6 +13,7 @@ import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { CreditReport as CreditReportType } from '@/types';
+import { useBureauData } from '@/hooks/useBureauData';
 
 const bureauConfig: Record<string, { name: string; fullName: string; color: string; logo: string }> = {
   cibil: { name: 'CIBIL', fullName: 'TransUnion CIBIL', color: '#0077b6', logo: '🔵' },
@@ -27,25 +27,38 @@ export default function CreditReportPage() {
   const { reportId: paramReportId } = useParams();
   const [searchParams] = useSearchParams();
   const { userRole, signOut } = useAuth();
-  const [selectedBureau, setSelectedBureau] = React.useState('cibil');
+  const [selectedBureau, setSelectedBureau] = React.useState<string | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
   const [report, setReport] = React.useState<CreditReportType | null>(null);
 
-  // Fetch report from database
+  const reportId = paramReportId || searchParams.get('reportId') || null;
+
+  // Bureau data hook with lazy loading and caching
+  const {
+    bureauCache,
+    fetchBureauData,
+    preloadReportData,
+    getScore,
+    isUnlocked,
+    isLoading: isBureauLoading,
+    getRawData,
+    getFirstUnlockedBureau,
+  } = useBureauData(reportId, report?.selected_bureaus || null);
+
+  // Fetch report metadata from database
   React.useEffect(() => {
-    const reportId = paramReportId || searchParams.get('reportId');
     if (reportId) {
       fetchReport(reportId);
     } else {
       setIsLoading(false);
     }
-  }, [paramReportId, searchParams]);
+  }, [reportId]);
 
-  const fetchReport = async (reportId: string) => {
+  const fetchReport = async (id: string) => {
     const { data, error } = await supabase
       .from('credit_reports')
       .select('*')
-      .eq('id', reportId)
+      .eq('id', id)
       .maybeSingle();
 
     if (error || !data) {
@@ -58,42 +71,60 @@ export default function CreditReportPage() {
     setIsLoading(false);
   };
 
-  // Auto-select first bureau with score
+  // Preload report data and set first unlocked bureau when report is loaded
   React.useEffect(() => {
-    if (report) {
-      const bureaus = ['cibil', 'experian', 'equifax', 'crif'];
-      for (const bureau of bureaus) {
-        const score = getScoreForBureau(bureau);
-        if (score && score > 0) {
-          setSelectedBureau(bureau);
-          break;
-        }
+    if (report && reportId) {
+      preloadReportData();
+    }
+  }, [report, reportId, preloadReportData]);
+
+  // Auto-select first unlocked bureau once data is loaded
+  React.useEffect(() => {
+    if (report && !selectedBureau) {
+      const firstUnlocked = getFirstUnlockedBureau();
+      if (firstUnlocked) {
+        setSelectedBureau(firstUnlocked);
       }
     }
-  }, [report]);
+  }, [report, bureauCache, selectedBureau, getFirstUnlockedBureau]);
+
+  // Lazy load bureau data when tab changes
+  React.useEffect(() => {
+    if (selectedBureau && isUnlocked(selectedBureau)) {
+      fetchBureauData(selectedBureau);
+    }
+  }, [selectedBureau, fetchBureauData, isUnlocked]);
 
   const handleLogout = async () => { 
     await signOut(); 
     navigate('/'); 
   };
 
-  const getScoreForBureau = (bureau: string): number => {
-    if (!report) return 0;
-    switch (bureau) {
-      case 'cibil': return report.cibil_score || 0;
-      case 'experian': return report.experian_score || 0;
-      case 'equifax': return report.equifax_score || 0;
-      case 'crif': return report.crif_score || 0;
-      default: return report.cibil_score || 0;
+  const handleBureauChange = (bureau: string) => {
+    if (isUnlocked(bureau)) {
+      setSelectedBureau(bureau);
+    } else {
+      toast.error(`${bureauConfig[bureau]?.name} report is locked. Please purchase to unlock.`);
     }
   };
 
   const handleDownload = (bureau: string) => {
     if (!report) return;
-    const config = bureauConfig[bureau];
-    const score = getScoreForBureau(bureau);
     
-    // Generate text content for download
+    // Only allow download for unlocked bureaus
+    if (!isUnlocked(bureau)) {
+      toast.error(`Cannot download locked bureau report`);
+      return;
+    }
+
+    const config = bureauConfig[bureau];
+    const score = getScore(bureau);
+    
+    if (!score) {
+      toast.error(`No data available for ${config.name}`);
+      return;
+    }
+    
     const content = generateReportContent(bureau, score);
     const blob = new Blob([content], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
@@ -148,12 +179,14 @@ ${'═'.repeat(80)}
     return '/dashboard';
   };
 
-  // Convert report to format for components - includes raw bureau data
+  // Convert report to format for components
   const getReportData = () => {
-    if (!report) return null;
+    if (!report || !selectedBureau) return null;
+    
     const activeLoans = Array.isArray(report.active_loans) ? report.active_loans : [];
     const creditCards = Array.isArray(report.credit_cards) ? report.credit_cards : [];
     
+    // Only include raw data for unlocked bureaus
     return {
       id: report.id,
       user_id: report.user_id,
@@ -162,10 +195,10 @@ ${'═'.repeat(80)}
       pan_number: report.pan_number,
       date_of_birth: report.date_of_birth,
       mobile: '---',
-      cibil_score: report.cibil_score,
-      experian_score: report.experian_score,
-      equifax_score: report.equifax_score,
-      crif_score: report.crif_score,
+      cibil_score: isUnlocked('cibil') ? getScore('cibil') : null,
+      experian_score: isUnlocked('experian') ? getScore('experian') : null,
+      equifax_score: isUnlocked('equifax') ? getScore('equifax') : null,
+      crif_score: isUnlocked('crif') ? getScore('crif') : null,
       active_loans: activeLoans,
       closed_loans: [],
       credit_cards: creditCards,
@@ -176,12 +209,17 @@ ${'═'.repeat(80)}
       improvement_tips: Array.isArray(report.improvement_tips) 
         ? (report.improvement_tips as string[]) 
         : [],
-      // Include raw bureau data for unified report display
-      raw_cibil_data: report.raw_cibil_data,
-      raw_experian_data: report.raw_experian_data,
-      raw_equifax_data: report.raw_equifax_data,
-      raw_crif_data: report.raw_crif_data
+      // Only include raw data for the currently selected unlocked bureau
+      raw_cibil_data: isUnlocked('cibil') ? getRawData('cibil') : null,
+      raw_experian_data: isUnlocked('experian') ? getRawData('experian') : null,
+      raw_equifax_data: isUnlocked('equifax') ? getRawData('equifax') : null,
+      raw_crif_data: isUnlocked('crif') ? getRawData('crif') : null,
     };
+  };
+
+  // Get list of unlocked bureaus for display
+  const getUnlockedBureausList = () => {
+    return Object.keys(bureauConfig).filter(bureau => isUnlocked(bureau));
   };
 
   if (isLoading) {
@@ -196,8 +234,9 @@ ${'═'.repeat(80)}
   }
 
   const reportData = getReportData();
+  const unlockedBureaus = getUnlockedBureausList();
 
-  if (!reportData) {
+  if (!report) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <motion.div
@@ -207,6 +246,24 @@ ${'═'.repeat(80)}
         >
           <CreditCard className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
           <h2 className="text-xl font-bold text-foreground mb-2">Report Not Found</h2>
+          <Button onClick={() => navigate(getBackPath())}>Go Back</Button>
+        </motion.div>
+      </div>
+    );
+  }
+
+  // If no bureaus are unlocked
+  if (unlockedBureaus.length === 0) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="text-center"
+        >
+          <Lock className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+          <h2 className="text-xl font-bold text-foreground mb-2">No Bureau Reports Available</h2>
+          <p className="text-muted-foreground mb-4">No bureaus were selected for this report.</p>
           <Button onClick={() => navigate(getBackPath())}>Go Back</Button>
         </motion.div>
       </div>
@@ -232,15 +289,17 @@ ${'═'.repeat(80)}
             </div>
 
             <div className="flex items-center gap-2">
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => handleDownload(selectedBureau)}
-                className="gap-2"
-              >
-                <Download className="w-4 h-4" />
-                <span className="hidden sm:inline">Download {bureauConfig[selectedBureau]?.name}</span>
-              </Button>
+              {selectedBureau && isUnlocked(selectedBureau) && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => handleDownload(selectedBureau)}
+                  className="gap-2"
+                >
+                  <Download className="w-4 h-4" />
+                  <span className="hidden sm:inline">Download {bureauConfig[selectedBureau]?.name}</span>
+                </Button>
+              )}
               <Button 
                 variant="outline" 
                 size="sm"
@@ -268,65 +327,107 @@ ${'═'.repeat(80)}
           className="mb-6"
         >
           <h1 className="text-2xl font-bold text-foreground mb-2">
-            Credit Report - {reportData.full_name}
+            Credit Report - {report.full_name}
           </h1>
           <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-            <span>PAN: {reportData.pan_number}</span>
-            <span>Mobile: {reportData.mobile}</span>
-            <span>Generated: {format(new Date(reportData.created_date || new Date()), 'dd MMM yyyy')}</span>
-            {reportData.initiated_by && (
-              <span className="px-2 py-0.5 bg-primary/10 text-primary rounded text-xs">
-                Generated by: {reportData.initiated_by === 'partner' ? 'Partner' : 'User'}
-              </span>
-            )}
+            <span>PAN: {report.pan_number}</span>
+            <span>Generated: {format(new Date(report.created_at || new Date()), 'dd MMM yyyy')}</span>
+            <span className="px-2 py-0.5 bg-primary/10 text-primary rounded text-xs">
+              Generated by: {report.partner_id ? 'Partner' : 'User'}
+            </span>
+            <span className="px-2 py-0.5 bg-secondary text-secondary-foreground rounded text-xs">
+              {unlockedBureaus.length} Bureau{unlockedBureaus.length > 1 ? 's' : ''} Unlocked
+            </span>
           </div>
         </motion.div>
 
         {/* Bureau Tabs */}
-        <Tabs value={selectedBureau} onValueChange={setSelectedBureau} className="w-full">
-          <TabsList className="grid w-full grid-cols-4 mb-6 bg-card border border-border">
-            {Object.entries(bureauConfig).map(([key, config]) => {
-              const score = getScoreForBureau(key);
-              const hasPurchased = score && score > 0;
+        {selectedBureau && (
+          <Tabs value={selectedBureau} onValueChange={handleBureauChange} className="w-full">
+            <TabsList className="grid w-full grid-cols-4 mb-6 bg-card border border-border">
+              {Object.entries(bureauConfig).map(([key, config]) => {
+                const score = getScore(key);
+                const unlocked = isUnlocked(key);
+                const loading = isBureauLoading(key);
+                
+                return (
+                  <TabsTrigger 
+                    key={key} 
+                    value={key}
+                    disabled={!unlocked}
+                    className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {unlocked ? (
+                      <>
+                        <span>{config.logo}</span>
+                        <span className="hidden sm:inline">{config.name}</span>
+                        {loading ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <span className="font-bold">{score ?? 'N/A'}</span>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <Lock className="w-3 h-3" />
+                        <span className="hidden sm:inline">{config.name}</span>
+                        <span className="font-bold text-muted-foreground">Locked</span>
+                      </>
+                    )}
+                  </TabsTrigger>
+                );
+              })}
+            </TabsList>
+
+            {/* Tab Contents - Only render for unlocked bureaus */}
+            {Object.keys(bureauConfig).map((bureau) => {
+              const unlocked = isUnlocked(bureau);
+              const loading = isBureauLoading(bureau);
+              
+              if (!unlocked) return null;
+              
               return (
-                <TabsTrigger 
-                  key={key} 
-                  value={key}
-                  disabled={!hasPurchased}
-                  className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground disabled:opacity-50"
-                >
-                  <span>{config.logo}</span>
-                  <span className="hidden sm:inline">{config.name}</span>
-                  <span className="font-bold">{hasPurchased ? score : 'N/A'}</span>
-                </TabsTrigger>
+                <TabsContent key={bureau} value={bureau}>
+                  {loading ? (
+                    <div className="flex items-center justify-center py-20">
+                      <div className="text-center">
+                        <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-4" />
+                        <p className="text-muted-foreground">Loading {bureauConfig[bureau].name} report...</p>
+                      </div>
+                    </div>
+                  ) : reportData ? (
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <BureauReportView 
+                        report={reportData}
+                        bureau={bureau}
+                        config={bureauConfig[bureau]}
+                        score={getScore(bureau) || 0}
+                      />
+                    </motion.div>
+                  ) : (
+                    <div className="flex items-center justify-center py-20">
+                      <p className="text-muted-foreground">No data available</p>
+                    </div>
+                  )}
+                </TabsContent>
               );
             })}
-          </TabsList>
+          </Tabs>
+        )}
 
-          {/* Tab Contents */}
-          {Object.keys(bureauConfig).map((bureau) => (
-            <TabsContent key={bureau} value={bureau}>
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3 }}
-              >
-                <BureauReportView 
-                  report={reportData}
-                  bureau={bureau}
-                  config={bureauConfig[bureau]}
-                  score={getScoreForBureau(bureau)}
-                />
-              </motion.div>
-            </TabsContent>
-          ))}
-        </Tabs>
-
-        {/* Score Repair CTA */}
-        <div className="mt-6 space-y-6">
-          <ScoreRepairCTA score={getScoreForBureau(selectedBureau)} />
-          <ImprovementTips tips={reportData.improvement_tips} />
-        </div>
+        {/* Score Repair CTA - only show for unlocked bureaus with score */}
+        {selectedBureau && isUnlocked(selectedBureau) && getScore(selectedBureau) && (
+          <div className="mt-6 space-y-6">
+            <ScoreRepairCTA score={getScore(selectedBureau) || 0} />
+            {reportData?.improvement_tips && reportData.improvement_tips.length > 0 && (
+              <ImprovementTips tips={reportData.improvement_tips} />
+            )}
+          </div>
+        )}
       </main>
     </div>
   );
