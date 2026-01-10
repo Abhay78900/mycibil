@@ -29,11 +29,36 @@ interface CreditReport {
   experian_score: number | null;
   equifax_score: number | null;
   crif_score: number | null;
+  selected_bureaus: string[] | null;
   report_status: string | null;
   is_high_risk: boolean | null;
   risk_flags: any;
   created_at: string;
 }
+
+// Check if a bureau is unlocked for a report
+const isBureauUnlocked = (report: CreditReport, bureau: string): boolean => {
+  if (!report.selected_bureaus || report.selected_bureaus.length === 0) return false;
+  return report.selected_bureaus.some(b => b.toLowerCase() === bureau.toLowerCase());
+};
+
+// Get the score for a bureau only if unlocked
+const getUnlockedScore = (report: CreditReport, bureau: string): number | undefined => {
+  if (!isBureauUnlocked(report, bureau)) return undefined;
+  switch (bureau.toLowerCase()) {
+    case 'cibil': return report.cibil_score ?? undefined;
+    case 'experian': return report.experian_score ?? undefined;
+    case 'equifax': return report.equifax_score ?? undefined;
+    case 'crif': return report.crif_score ?? undefined;
+    default: return undefined;
+  }
+};
+
+// Get list of unlocked bureaus for a report
+const getUnlockedBureaus = (report: CreditReport): string[] => {
+  if (!report.selected_bureaus) return [];
+  return report.selected_bureaus.map(b => b.toLowerCase());
+};
 
 export default function Dashboard() {
   const { user, loading: authLoading, userRole, profile } = useAuth();
@@ -178,49 +203,62 @@ export default function Dashboard() {
 
             {/* Bureau Scores & Reports */}
             <div className="lg:col-span-2 space-y-6">
-              {/* Bureau Scores */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-              >
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <TrendingUp className="w-5 h-5 text-accent" />
-                      Bureau Scores
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid sm:grid-cols-2 gap-4">
-                      <BureauCard 
-                        name="CIBIL" 
-                        code="cibil" 
-                        score={latestReport.cibil_score || undefined}
-                        isLocked={!latestReport.cibil_score}
-                      />
-                      <BureauCard 
-                        name="Experian" 
-                        code="experian" 
-                        score={latestReport.experian_score || undefined}
-                        isLocked={!latestReport.experian_score}
-                      />
-                      <BureauCard 
-                        name="Equifax" 
-                        code="equifax" 
-                        score={latestReport.equifax_score || undefined}
-                        isLocked={!latestReport.equifax_score}
-                      />
-                      <BureauCard 
-                        name="CRIF" 
-                        code="crif" 
-                        score={latestReport.crif_score || undefined}
-                        isLocked={!latestReport.crif_score}
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
+              {/* Bureau Scores - Only show unlocked bureaus */}
+              {getUnlockedBureaus(latestReport).length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                >
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <TrendingUp className="w-5 h-5 text-accent" />
+                        Bureau Scores
+                        <span className="text-sm font-normal text-muted-foreground ml-2">
+                          ({getUnlockedBureaus(latestReport).length} unlocked)
+                        </span>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid sm:grid-cols-2 gap-4">
+                        {isBureauUnlocked(latestReport, 'cibil') && (
+                          <BureauCard 
+                            name="CIBIL" 
+                            code="cibil" 
+                            score={getUnlockedScore(latestReport, 'cibil')}
+                            isLocked={false}
+                          />
+                        )}
+                        {isBureauUnlocked(latestReport, 'experian') && (
+                          <BureauCard 
+                            name="Experian" 
+                            code="experian" 
+                            score={getUnlockedScore(latestReport, 'experian')}
+                            isLocked={false}
+                          />
+                        )}
+                        {isBureauUnlocked(latestReport, 'equifax') && (
+                          <BureauCard 
+                            name="Equifax" 
+                            code="equifax" 
+                            score={getUnlockedScore(latestReport, 'equifax')}
+                            isLocked={false}
+                          />
+                        )}
+                        {isBureauUnlocked(latestReport, 'crif') && (
+                          <BureauCard 
+                            name="CRIF" 
+                            code="crif" 
+                            score={getUnlockedScore(latestReport, 'crif')}
+                            isLocked={false}
+                          />
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              )}
 
               {/* Recent Reports */}
               <motion.div
