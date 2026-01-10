@@ -1,49 +1,370 @@
-export interface MockReport {
-  id: string;
-  full_name: string;
-  pan_number: string;
-  mobile: string;
-  cibil_score: number | null;
-  experian_score: number | null;
-  equifax_score: number | null;
-  crif_score: number | null;
-  active_loans: any[];
-  closed_loans: any[];
-  credit_cards: any[];
-  credit_utilization: number;
-  created_date: string;
-  initiated_by: 'partner' | 'user';
-  improvement_tips: string[];
-}
+import { CreditReport, Partner, Transaction, WalletTransaction } from "@/types/entities";
 
-export const mockReportsList: MockReport[] = [
+// Mock Credit Report
+export const mockCreditReport: CreditReport = {
+  id: "report-1",
+  user_email: "demo@creditcheck.in",
+  full_name: "Rajesh Kumar",
+  pan_number: "ABCDE1234F",
+  mobile: "9876543210",
+  average_score: 756,
+  score_category: "Very Good",
+  cibil_score: 762,
+  experian_score: 748,
+  equifax_score: 755,
+  crif_score: 760,
+  credit_utilization: 28,
+  bureaus_checked: ["CIBIL", "Experian", "Equifax", "CRIF"],
+  active_loans: [
+    {
+      loan_type: "Home Loan",
+      lender: "HDFC Bank",
+      account_number: "HL123456789",
+      sanctioned_amount: 5000000,
+      current_balance: 2500000,
+      emi_amount: 45000,
+      tenure_months: 180,
+      start_date: "2020-01-15",
+      status: "Active",
+      overdue_amount: 0,
+      payment_history: [
+        { month: "Dec", year: 2024, status: "On Time", dpd: 0 },
+        { month: "Nov", year: 2024, status: "On Time", dpd: 0 },
+        { month: "Oct", year: 2024, status: "On Time", dpd: 0 },
+      ],
+    },
+    {
+      loan_type: "Car Loan",
+      lender: "State Bank of India",
+      account_number: "CL789012345",
+      sanctioned_amount: 800000,
+      current_balance: 450000,
+      emi_amount: 18000,
+      tenure_months: 60,
+      start_date: "2022-06-01",
+      status: "Active",
+      overdue_amount: 0,
+      payment_history: [
+        { month: "Dec", year: 2024, status: "On Time", dpd: 0 },
+        { month: "Nov", year: 2024, status: "On Time", dpd: 0 },
+      ],
+    },
+  ],
+  closed_loans: [
+    {
+      loan_type: "Personal Loan",
+      lender: "ICICI Bank",
+      sanctioned_amount: 300000,
+      closed_date: "2022-03-01",
+      status: "Closed",
+    },
+  ],
+  credit_cards: [
+    {
+      bank: "HDFC Bank",
+      card_type: "Regalia",
+      credit_limit: 500000,
+      current_balance: 85000,
+      available_credit: 415000,
+      utilization: 17,
+      status: "Active",
+    },
+  ],
+  is_high_risk: false,
+  report_status: "UNLOCKED",
+  initiated_by: "user",
+  report_generated_at: new Date().toISOString(),
+  created_date: new Date().toISOString(),
+};
+
+// Mock Reports List - includes both user and partner generated reports
+export const mockReportsList: CreditReport[] = [
+  { ...mockCreditReport, initiated_by: "user" },
   {
-    id: '1',
-    full_name: 'PURAN MAL TANK',
-    pan_number: 'AXXPT1234X',
-    mobile: '9876543210',
-    cibil_score: 750,
-    experian_score: 745,
-    equifax_score: 738,
-    crif_score: 742,
-    active_loans: [
-      { type: 'Housing Loan', amount: 2500000, emi: 25000, bank: 'HDFC Bank' },
-      { type: 'Personal Loan', amount: 300000, emi: 12000, bank: 'ICICI Bank' }
-    ],
-    closed_loans: [
-      { type: 'Car Loan', amount: 800000, closedDate: '2023-06-15', bank: 'SBI' }
-    ],
-    credit_cards: [
-      { bank: 'HDFC Bank', limit: 200000, outstanding: 45000 },
-      { bank: 'Axis Bank', limit: 150000, outstanding: 25000 }
-    ],
-    credit_utilization: 23,
-    created_date: '2025-01-10',
-    initiated_by: 'user',
-    improvement_tips: [
-      'Keep credit utilization below 30%',
-      'Maintain regular EMI payments',
-      'Avoid multiple loan applications in short period'
-    ]
-  }
+    ...mockCreditReport,
+    id: "report-2",
+    full_name: "Priya Sharma",
+    user_email: "priya@example.com",
+    pan_number: "FGHIJ5678K",
+    mobile: "9876543211",
+    average_score: 620,
+    cibil_score: 615,
+    experian_score: 625,
+    equifax_score: 618,
+    crif_score: 622,
+    score_category: "Average",
+    is_high_risk: false,
+    initiated_by: "partner",
+    partner_id: "partner-1",
+    created_date: new Date(Date.now() - 86400000).toISOString(),
+  },
+  {
+    ...mockCreditReport,
+    id: "report-3",
+    full_name: "Amit Patel",
+    user_email: "amit@example.com",
+    pan_number: "KLMNO9012P",
+    mobile: "9876543212",
+    average_score: 480,
+    cibil_score: 475,
+    experian_score: 485,
+    equifax_score: 478,
+    crif_score: 482,
+    score_category: "Poor",
+    is_high_risk: true,
+    initiated_by: "user",
+    created_date: new Date(Date.now() - 172800000).toISOString(),
+  },
+  {
+    ...mockCreditReport,
+    id: "report-4",
+    full_name: "Sunita Verma",
+    user_email: "sunita@example.com",
+    pan_number: "PQRST3456U",
+    mobile: "9876543213",
+    average_score: 710,
+    cibil_score: 705,
+    experian_score: 715,
+    equifax_score: 708,
+    crif_score: 712,
+    score_category: "Good",
+    is_high_risk: false,
+    initiated_by: "partner",
+    partner_id: "partner-1",
+    created_date: new Date(Date.now() - 259200000).toISOString(),
+  },
+  {
+    ...mockCreditReport,
+    id: "report-5",
+    full_name: "Vikram Singh",
+    user_email: "vikram@example.com",
+    pan_number: "UVWXY7890Z",
+    mobile: "9876543214",
+    average_score: 785,
+    cibil_score: 790,
+    experian_score: 780,
+    equifax_score: 785,
+    crif_score: 785,
+    score_category: "Excellent",
+    is_high_risk: false,
+    initiated_by: "partner",
+    partner_id: "partner-2",
+    created_date: new Date(Date.now() - 345600000).toISOString(),
+  },
+];
+
+// Mock Partner
+export const mockPartner: Partner = {
+  id: "partner-1",
+  name: "ABC Partners",
+  franchise_id: "CC-ABC123",
+  owner_email: "suresh@abcpartners.com",
+  phone: "9876543210",
+  address: "123 Business Park, Mumbai",
+  wallet_balance: 5000,
+  total_wallet_loaded: 10000,
+  total_sales: 156,
+  total_revenue: 15444,
+  total_commission_earned: 3088,
+  total_commission_paid: 2000,
+  commission_rate: 20,
+  status: "active",
+  created_date: new Date(Date.now() - 30 * 86400000).toISOString(),
+};
+
+// Mock Partners List
+export const mockPartnersList: Partner[] = [
+  mockPartner,
+  {
+    id: "partner-2",
+    name: "XYZ Finance",
+    franchise_id: "CC-XYZ456",
+    owner_email: "ramesh@xyzfinance.com",
+    phone: "9876543211",
+    address: "456 Finance Tower, Delhi",
+    wallet_balance: 8500,
+    total_wallet_loaded: 15000,
+    total_sales: 124,
+    total_revenue: 12276,
+    total_commission_earned: 2455,
+    total_commission_paid: 1500,
+    commission_rate: 20,
+    status: "active",
+    created_date: new Date(Date.now() - 60 * 86400000).toISOString(),
+  },
+  {
+    id: "partner-3",
+    name: "Quick Credit Solutions",
+    franchise_id: "CC-QCS789",
+    owner_email: "anita@quickcredit.com",
+    phone: "9876543212",
+    address: "789 Tech Park, Bangalore",
+    wallet_balance: 3200,
+    total_wallet_loaded: 8000,
+    total_sales: 98,
+    total_revenue: 9702,
+    total_commission_earned: 1940,
+    total_commission_paid: 1500,
+    commission_rate: 20,
+    status: "active",
+    created_date: new Date(Date.now() - 90 * 86400000).toISOString(),
+  },
+];
+
+// Mock Transactions
+export const mockTransactions: Transaction[] = [
+  {
+    id: "TXN001",
+    user_email: "john@example.com",
+    transaction_id: "TXN001",
+    payment_gateway: "razorpay",
+    amount: 396,
+    report_count: 4,
+    bureaus_purchased: ["CIBIL", "Experian", "Equifax", "CRIF"],
+    status: "success",
+    payment_method: "UPI",
+    commission_amount: 79,
+    initiated_by: "user",
+    created_date: new Date().toISOString(),
+  },
+  {
+    id: "TXN002",
+    user_email: "jane@example.com",
+    transaction_id: "TXN002",
+    payment_gateway: "razorpay",
+    amount: 99,
+    report_count: 1,
+    bureaus_purchased: ["CIBIL"],
+    status: "success",
+    payment_method: "Card",
+    commission_amount: 20,
+    initiated_by: "user",
+    created_date: new Date(Date.now() - 3600000).toISOString(),
+  },
+  {
+    id: "TXN003",
+    user_email: "mike@example.com",
+    transaction_id: "TXN003",
+    payment_gateway: "razorpay",
+    amount: 198,
+    report_count: 2,
+    bureaus_purchased: ["CIBIL", "Experian"],
+    status: "success",
+    payment_method: "UPI",
+    commission_amount: 40,
+    initiated_by: "user",
+    created_date: new Date(Date.now() - 7200000).toISOString(),
+  },
+];
+
+// Mock Wallet Transactions
+export const mockWalletTransactions: WalletTransaction[] = [
+  {
+    id: "WT001",
+    partner_id: "partner-1",
+    partner_email: "suresh@abcpartners.com",
+    transaction_type: "credit",
+    amount: 5000,
+    balance_before: 0,
+    balance_after: 5000,
+    description: "Wallet top-up via UPI",
+    status: "success",
+    created_date: new Date(Date.now() - 7 * 86400000).toISOString(),
+  },
+  {
+    id: "WT002",
+    partner_id: "partner-1",
+    partner_email: "suresh@abcpartners.com",
+    transaction_type: "debit",
+    amount: 396,
+    balance_before: 5000,
+    balance_after: 4604,
+    description: "Report generation - 4 bureaus",
+    reference_id: "report-1",
+    status: "success",
+    created_date: new Date(Date.now() - 5 * 86400000).toISOString(),
+  },
+  {
+    id: "WT003",
+    partner_id: "partner-1",
+    partner_email: "suresh@abcpartners.com",
+    transaction_type: "credit",
+    amount: 79,
+    balance_before: 4604,
+    balance_after: 4683,
+    description: "Commission earned - 4 bureaus",
+    status: "success",
+    created_date: new Date(Date.now() - 5 * 86400000).toISOString(),
+  },
+];
+
+// Mock Users
+export const mockUsers = [
+  {
+    id: "user-1",
+    email: "rajesh@example.com",
+    full_name: "Rajesh Kumar",
+    user_role: "USER" as const,
+    reports_count: 3,
+    last_report_date: new Date().toISOString(),
+    created_date: new Date(Date.now() - 30 * 86400000).toISOString(),
+  },
+  {
+    id: "user-2",
+    email: "priya@example.com",
+    full_name: "Priya Sharma",
+    user_role: "USER" as const,
+    reports_count: 1,
+    last_report_date: new Date(Date.now() - 86400000).toISOString(),
+    created_date: new Date(Date.now() - 60 * 86400000).toISOString(),
+  },
+  {
+    id: "user-3",
+    email: "amit@example.com",
+    full_name: "Amit Patel",
+    user_role: "USER" as const,
+    reports_count: 2,
+    last_report_date: new Date(Date.now() - 172800000).toISOString(),
+    created_date: new Date(Date.now() - 90 * 86400000).toISOString(),
+  },
+];
+
+// Mock Stats
+export const mockAdminStats = {
+  totalRevenue: 125000,
+  totalUsers: 1250,
+  totalReports: 3456,
+  totalPartners: 15,
+  activePartners: 12,
+  todayRevenue: 8500,
+  todayReports: 45,
+};
+
+// Mock Chart Data
+export const mockDailyRevenue = [
+  { date: "Dec 20", revenue: 12500 },
+  { date: "Dec 21", revenue: 18200 },
+  { date: "Dec 22", revenue: 15800 },
+  { date: "Dec 23", revenue: 22100 },
+  { date: "Dec 24", revenue: 19500 },
+  { date: "Dec 25", revenue: 16800 },
+  { date: "Dec 26", revenue: 21300 },
+];
+
+export const mockDailySales = [
+  { date: "Dec 20", sales: 5 },
+  { date: "Dec 21", sales: 8 },
+  { date: "Dec 22", sales: 6 },
+  { date: "Dec 23", sales: 12 },
+  { date: "Dec 24", sales: 9 },
+  { date: "Dec 25", sales: 7 },
+  { date: "Dec 26", sales: 11 },
+];
+
+export const mockPartnerPerformance = [
+  { name: "ABC Partners", sales: 156, revenue: 15444 },
+  { name: "XYZ Finance", sales: 124, revenue: 12276 },
+  { name: "Quick Credit", sales: 98, revenue: 9702 },
+  { name: "Finance Hub", sales: 87, revenue: 8613 },
+  { name: "Credit Plus", sales: 76, revenue: 7524 },
 ];
