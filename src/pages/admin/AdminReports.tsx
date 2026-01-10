@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, FileText, Loader2, Eye, Lock, Unlock, User, Building2 } from 'lucide-react';
+import { Search, FileText, Loader2, Eye, Lock, Unlock, User, Building2, ChevronDown } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface ReportWithPartner {
@@ -33,6 +33,7 @@ export default function AdminReports() {
   const [sourceFilter, setSourceFilter] = useState<string>('all');
   const [partnerFilter, setPartnerFilter] = useState<string>('all');
   const [isLoading, setIsLoading] = useState(true);
+  const [visibleCount, setVisibleCount] = useState(10);
 
   useEffect(() => {
     if (!loading && userRole !== 'admin') {
@@ -94,6 +95,13 @@ export default function AdminReports() {
 
     return matchesSearch && matchesSource && matchesPartner;
   });
+
+  const visibleReports = filteredReports.slice(0, visibleCount);
+  const hasMoreReports = filteredReports.length > visibleCount;
+
+  const handleViewMore = () => {
+    setVisibleCount(prev => prev + 10);
+  };
 
   if (loading || isLoading) {
     return (
@@ -172,7 +180,7 @@ export default function AdminReports() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredReports.map((report) => (
+                  {visibleReports.map((report) => (
                     <TableRow key={report.id}>
                       <TableCell className="font-medium">{report.full_name}</TableCell>
                       <TableCell>
@@ -235,6 +243,23 @@ export default function AdminReports() {
               </Table>
               {filteredReports.length === 0 && (
                 <p className="text-center text-muted-foreground py-8">No reports found</p>
+              )}
+              {hasMoreReports && (
+                <div className="flex justify-center pt-4">
+                  <Button 
+                    variant="outline" 
+                    onClick={handleViewMore}
+                    className="gap-2"
+                  >
+                    <ChevronDown className="w-4 h-4" />
+                    View More ({filteredReports.length - visibleCount} remaining)
+                  </Button>
+                </div>
+              )}
+              {filteredReports.length > 0 && (
+                <p className="text-center text-muted-foreground text-sm pt-2">
+                  Showing {visibleReports.length} of {filteredReports.length} reports
+                </p>
               )}
             </CardContent>
           </Card>
