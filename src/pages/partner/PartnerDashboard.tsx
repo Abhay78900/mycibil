@@ -45,10 +45,12 @@ export default function PartnerDashboard() {
 
       setPartner(partnerData);
 
+      // Only fetch unlocked/generated reports - exclude locked/unpaid reports
       const { data: reports } = await supabase
         .from('credit_reports')
         .select('*')
         .eq('partner_id', partnerData.id)
+        .eq('report_status', 'unlocked')
         .order('created_at', { ascending: false });
 
       const reportsList = reports || [];
