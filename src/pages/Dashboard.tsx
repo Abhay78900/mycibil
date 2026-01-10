@@ -89,12 +89,10 @@ export default function Dashboard() {
 
   const fetchReports = async () => {
     try {
-      // Only fetch unlocked/generated reports - exclude locked/unpaid reports
       const { data, error } = await supabase
         .from('credit_reports')
         .select('*')
         .eq('user_id', user?.id)
-        .eq('report_status', 'unlocked')
         .order('created_at', { ascending: false });
 
       if (error) throw error;

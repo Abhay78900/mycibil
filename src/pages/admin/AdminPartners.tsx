@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Building2, Loader2, Plus, Wallet, Percent, Pencil, Eye } from 'lucide-react';
+import { Search, Building2, Loader2, Plus, Wallet, Percent, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Partner {
@@ -267,14 +267,9 @@ export default function AdminPartners() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-1">
-                          <Button variant="ghost" size="sm" onClick={() => navigate(`/admin/partners/${partner.id}/wallet`)}>
-                            <Wallet className="w-4 h-4" />
-                          </Button>
-                          <Button variant="ghost" size="sm" onClick={() => openEditDialog(partner)}>
-                            <Pencil className="w-4 h-4" />
-                          </Button>
-                        </div>
+                        <Button variant="ghost" size="sm" onClick={() => openEditDialog(partner)}>
+                          <Pencil className="w-4 h-4" />
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}

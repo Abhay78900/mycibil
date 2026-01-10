@@ -19,7 +19,6 @@ import AdminPartners from "./pages/admin/AdminPartners";
 import AdminReports from "./pages/admin/AdminReports";
 import AdminRevenue from "./pages/admin/AdminRevenue";
 import AdminSettings from "./pages/admin/AdminSettings";
-import AdminPartnerWallet from "./pages/admin/AdminPartnerWallet";
 
 // Partner Pages
 import PartnerDashboard from "./pages/partner/PartnerDashboard";
@@ -50,7 +49,6 @@ const App = () => (
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/admin/users" element={<AdminUsers />} />
             <Route path="/admin/partners" element={<AdminPartners />} />
-            <Route path="/admin/partners/:partnerId/wallet" element={<AdminPartnerWallet />} />
             <Route path="/admin/reports" element={<AdminReports />} />
             <Route path="/admin/revenue" element={<AdminRevenue />} />
             <Route path="/admin/settings" element={<AdminSettings />} />
