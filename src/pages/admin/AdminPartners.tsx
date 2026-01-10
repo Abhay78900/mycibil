@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import AdminSidebar from '@/components/admin/AdminSidebar';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import PartnerWalletManagement from '@/components/admin/PartnerWalletManagement';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -11,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Search, Building2, Loader2, Plus, Wallet, Percent, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -184,7 +186,7 @@ export default function AdminPartners() {
           <div className="flex items-center justify-between mb-8">
             <div>
               <h1 className="text-3xl font-bold text-foreground">Partner Management</h1>
-              <p className="text-muted-foreground mt-1">Manage franchise partners</p>
+              <p className="text-muted-foreground mt-1">Manage franchise partners and wallets</p>
             </div>
             <div className="flex items-center gap-4">
               <Badge variant="outline" className="text-lg px-4 py-2">
@@ -201,7 +203,20 @@ export default function AdminPartners() {
             </div>
           </div>
 
-          <Card>
+          <Tabs defaultValue="partners" className="space-y-6">
+            <TabsList>
+              <TabsTrigger value="partners">
+                <Building2 className="w-4 h-4 mr-2" />
+                Partners
+              </TabsTrigger>
+              <TabsTrigger value="wallets">
+                <Wallet className="w-4 h-4 mr-2" />
+                Wallet Management
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="partners">
+              <Card>
             <CardHeader>
               <div className="flex items-center gap-4">
                 <div className="relative flex-1">
@@ -280,6 +295,12 @@ export default function AdminPartners() {
               )}
             </CardContent>
           </Card>
+            </TabsContent>
+
+            <TabsContent value="wallets">
+              <PartnerWalletManagement />
+            </TabsContent>
+          </Tabs>
         </div>
       </main>
 

@@ -8,14 +8,30 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Search, FileText, Loader2, Eye, Lock, Unlock } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Search, FileText, Loader2, Eye, Lock, Unlock, User, Building2 } from 'lucide-react';
 import { format } from 'date-fns';
+
+interface ReportWithPartner {
+  id: string;
+  full_name: string;
+  pan_number: string;
+  average_score: number | null;
+  selected_bureaus: string[];
+  report_status: string;
+  created_at: string;
+  partner_id: string | null;
+  partner_name?: string;
+}
 
 export default function AdminReports() {
   const { userRole, signOut, loading } = useAuth();
   const navigate = useNavigate();
-  const [reports, setReports] = useState<any[]>([]);
+  const [reports, setReports] = useState<ReportWithPartner[]>([]);
+  const [partners, setPartners] = useState<{ id: string; name: string }[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [sourceFilter, setSourceFilter] = useState<string>('all');
+  const [partnerFilter, setPartnerFilter] = useState<string>('all');
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -24,17 +40,32 @@ export default function AdminReports() {
       return;
     }
     if (!loading && userRole === 'admin') {
-      loadReports();
+      loadData();
     }
   }, [userRole, loading, navigate]);
 
-  const loadReports = async () => {
+  const loadData = async () => {
     try {
-      const { data } = await supabase
+      // Load partners first for mapping
+      const { data: partnersData } = await supabase
+        .from('partners')
+        .select('id, name');
+      
+      const partnerMap = new Map((partnersData || []).map(p => [p.id, p.name]));
+      setPartners(partnersData || []);
+
+      // Load reports
+      const { data: reportsData } = await supabase
         .from('credit_reports')
         .select('*')
         .order('created_at', { ascending: false });
-      setReports(data || []);
+
+      const reportsWithPartner = (reportsData || []).map(report => ({
+        ...report,
+        partner_name: report.partner_id ? partnerMap.get(report.partner_id) : undefined,
+      }));
+
+      setReports(reportsWithPartner);
     } catch (error) {
       console.error('Error loading reports:', error);
     } finally {
@@ -47,10 +78,22 @@ export default function AdminReports() {
     navigate('/');
   };
 
-  const filteredReports = reports.filter(report => 
-    report.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    report.pan_number?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredReports = reports.filter(report => {
+    const matchesSearch = 
+      report.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      report.pan_number?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesSource = 
+      sourceFilter === 'all' ||
+      (sourceFilter === 'user' && !report.partner_id) ||
+      (sourceFilter === 'partner' && !!report.partner_id);
+    
+    const matchesPartner = 
+      partnerFilter === 'all' ||
+      report.partner_id === partnerFilter;
+
+    return matchesSearch && matchesSource && matchesPartner;
+  });
 
   if (loading || isLoading) {
     return (
@@ -79,8 +122,8 @@ export default function AdminReports() {
 
           <Card>
             <CardHeader>
-              <div className="flex items-center gap-4">
-                <div className="relative flex-1">
+              <div className="flex items-center gap-4 flex-wrap">
+                <div className="relative flex-1 min-w-[200px]">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
                     placeholder="Search by name or PAN..."
@@ -89,16 +132,40 @@ export default function AdminReports() {
                     className="pl-10"
                   />
                 </div>
+                <Select value={sourceFilter} onValueChange={setSourceFilter}>
+                  <SelectTrigger className="w-[150px]">
+                    <SelectValue placeholder="Source" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Sources</SelectItem>
+                    <SelectItem value="user">User</SelectItem>
+                    <SelectItem value="partner">Partner</SelectItem>
+                  </SelectContent>
+                </Select>
+                {sourceFilter === 'partner' && (
+                  <Select value={partnerFilter} onValueChange={setPartnerFilter}>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Select Partner" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Partners</SelectItem>
+                      {partners.map(p => (
+                        <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
             </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>Source</TableHead>
                     <TableHead>Name</TableHead>
                     <TableHead>PAN</TableHead>
                     <TableHead>Average Score</TableHead>
-                    <TableHead>Bureaus</TableHead>
+                    <TableHead>Selected Bureaus</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Created</TableHead>
                     <TableHead>Actions</TableHead>
@@ -107,6 +174,24 @@ export default function AdminReports() {
                 <TableBody>
                   {filteredReports.map((report) => (
                     <TableRow key={report.id}>
+                      <TableCell>
+                        {report.partner_id ? (
+                          <div className="flex items-center gap-2">
+                            <Badge variant="secondary" className="gap-1">
+                              <Building2 className="w-3 h-3" />
+                              Partner
+                            </Badge>
+                            {report.partner_name && (
+                              <span className="text-xs text-muted-foreground">{report.partner_name}</span>
+                            )}
+                          </div>
+                        ) : (
+                          <Badge variant="outline" className="gap-1">
+                            <User className="w-3 h-3" />
+                            User
+                          </Badge>
+                        )}
+                      </TableCell>
                       <TableCell className="font-medium">{report.full_name}</TableCell>
                       <TableCell>
                         <span className="font-mono text-sm">{report.pan_number}</span>
@@ -117,7 +202,7 @@ export default function AdminReports() {
                       <TableCell>
                         <div className="flex gap-1 flex-wrap">
                           {report.selected_bureaus?.map((bureau: string) => (
-                            <Badge key={bureau} variant="outline" className="text-xs">
+                            <Badge key={bureau} variant="outline" className="text-xs capitalize">
                               {bureau}
                             </Badge>
                           ))}
