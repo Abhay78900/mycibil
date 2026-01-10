@@ -1,35 +1,38 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams, useLocation, useParams } from 'react-router-dom';
-import { createPageUrl } from '@/utils';
-import { Button } from "@/components/ui/button";
+import React from 'react';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { motion } from 'framer-motion';
+import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  CreditCard,
-  ArrowLeft,
-  Download,
-  Printer,
-  Loader2,
-  Lock,
-} from 'lucide-react';
-import FullCreditReportView from '@/components/credit/FullCreditReportView';
-import { bureauConfig, getBureauScore, isBureauPurchased } from '@/utils/bureauMapping';
-import { CreditReport as CreditReportType } from '@/types';
-import { supabase } from '@/integrations/supabase/client';
+import { CreditCard, ArrowLeft, LogOut, Download, RefreshCw, Loader2 } from 'lucide-react';
+import BureauScoreCards from '@/components/credit/BureauScoreCards';
+import BureauReportView from '@/components/credit/BureauReportView';
+import ScoreRepairCTA from '@/components/credit/ScoreRepairCTA';
+import ImprovementTips from '@/components/credit/ImprovementTips';
+import { format } from 'date-fns';
 import { toast } from 'sonner';
+import { Link } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { CreditReport as CreditReportType } from '@/types';
 
-export default function CreditReport() {
+const bureauConfig: Record<string, { name: string; fullName: string; color: string; logo: string }> = {
+  cibil: { name: 'CIBIL', fullName: 'TransUnion CIBIL', color: '#0077b6', logo: '🔵' },
+  experian: { name: 'EXPERIAN', fullName: 'Experian', color: '#7c3aed', logo: '🟣' },
+  equifax: { name: 'EQUIFAX', fullName: 'Equifax', color: '#dc2626', logo: '🔴' },
+  crif: { name: 'CRIF', fullName: 'CRIF High Mark', color: '#16a34a', logo: '🟢' }
+};
+
+export default function CreditReportPage() {
   const navigate = useNavigate();
-  const location = useLocation();
   const { reportId: paramReportId } = useParams();
   const [searchParams] = useSearchParams();
-  const [isLoading, setIsLoading] = useState(true);
-  const [report, setReport] = useState<CreditReportType | null>(null);
-  const [selectedBureau, setSelectedBureau] = useState('cibil');
-  
-  // Track where the user came from for proper back navigation
-  const referrer = searchParams.get('ref') || (location.state as any)?.from || 'dashboard';
+  const { userRole, signOut } = useAuth();
+  const [selectedBureau, setSelectedBureau] = React.useState('cibil');
+  const [isLoading, setIsLoading] = React.useState(true);
+  const [report, setReport] = React.useState<CreditReportType | null>(null);
 
-  useEffect(() => {
+  // Fetch report from database
+  React.useEffect(() => {
     const reportId = paramReportId || searchParams.get('reportId');
     if (reportId) {
       fetchReport(reportId);
@@ -55,12 +58,13 @@ export default function CreditReport() {
     setIsLoading(false);
   };
 
-  useEffect(() => {
+  // Auto-select first bureau with score
+  React.useEffect(() => {
     if (report) {
-      // Only select bureaus that were actually purchased
       const bureaus = ['cibil', 'experian', 'equifax', 'crif'];
       for (const bureau of bureaus) {
-        if (isBureauPurchased(report, bureau)) {
+        const score = getScoreForBureau(bureau);
+        if (score && score > 0) {
           setSelectedBureau(bureau);
           break;
         }
@@ -68,35 +72,107 @@ export default function CreditReport() {
     }
   }, [report]);
 
-  // Handle back navigation - go to originating portal
-  const handleBackNavigation = () => {
-    switch (referrer) {
-      case 'admin':
-        navigate(createPageUrl('AdminReportsRepository'));
-        break;
-      case 'partner':
-        navigate(createPageUrl('PartnerReports'));
-        break;
-      default:
-        navigate(createPageUrl('Dashboard'));
+  const handleLogout = async () => { 
+    await signOut(); 
+    navigate('/'); 
+  };
+
+  const getScoreForBureau = (bureau: string): number => {
+    if (!report) return 0;
+    switch (bureau) {
+      case 'cibil': return report.cibil_score || 0;
+      case 'experian': return report.experian_score || 0;
+      case 'equifax': return report.equifax_score || 0;
+      case 'crif': return report.crif_score || 0;
+      default: return report.cibil_score || 0;
     }
   };
 
-  const handlePrint = () => {
-    window.print();
-  };
-
-  const handleDownload = () => {
+  const handleDownload = (bureau: string) => {
     if (!report) return;
-    const content = JSON.stringify(report, null, 2);
-    const blob = new Blob([content], { type: 'application/json' });
+    const config = bureauConfig[bureau];
+    const score = getScoreForBureau(bureau);
+    
+    // Generate text content for download
+    const content = generateReportContent(bureau, score);
+    const blob = new Blob([content], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `CreditReport_${report.pan_number}_${selectedBureau.toUpperCase()}.json`;
+    a.download = `${config.name}_Report_${report.pan_number}_${format(new Date(), 'yyyyMMdd')}.txt`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    toast.success(`${config.name} report downloaded successfully`);
+  };
+
+  const generateReportContent = (bureau: string, score: number): string => {
+    if (!report) return '';
+    const config = bureauConfig[bureau];
+    const reportDate = format(new Date(), 'EEE MMM dd yyyy');
+    const controlNumber = Math.floor(Math.random() * 9000000000) + 1000000000;
+    const activeLoans = Array.isArray(report.active_loans) ? report.active_loans : [];
+    const creditCards = Array.isArray(report.credit_cards) ? report.credit_cards : [];
+
+    return `
+${'═'.repeat(80)}
+                              ${config.fullName.toUpperCase()} REPORT
+${'═'.repeat(80)}
+
+DATE: ${reportDate}
+CONTROL NUMBER: ${controlNumber}
+
+${'─'.repeat(80)}
+${config.name} SCORE: ${score}
+${'─'.repeat(80)}
+
+PERSONAL INFORMATION
+Name: ${report.full_name}
+PAN: ${report.pan_number}
+
+ACCOUNT SUMMARY
+Active Loans: ${activeLoans.length}
+Credit Cards: ${creditCards.length}
+
+${'═'.repeat(80)}
+                        END OF CREDIT INFORMATION REPORT
+${'═'.repeat(80)}
+    `;
+  };
+
+  const getBackPath = () => {
+    if (userRole === 'admin') return '/admin/reports';
+    if (userRole === 'partner') return '/partner/reports';
+    return '/dashboard';
+  };
+
+  // Convert report to mock format for components
+  const getMockReport = () => {
+    if (!report) return null;
+    const activeLoans = Array.isArray(report.active_loans) ? report.active_loans : [];
+    const creditCards = Array.isArray(report.credit_cards) ? report.credit_cards : [];
+    
+    return {
+      id: report.id,
+      full_name: report.full_name,
+      pan_number: report.pan_number,
+      mobile: '---',
+      cibil_score: report.cibil_score,
+      experian_score: report.experian_score,
+      equifax_score: report.equifax_score,
+      crif_score: report.crif_score,
+      active_loans: activeLoans,
+      closed_loans: [],
+      credit_cards: creditCards,
+      credit_utilization: 0,
+      created_date: report.created_at || new Date().toISOString(),
+      initiated_by: report.partner_id ? 'partner' as const : 'user' as const,
+      improvement_tips: Array.isArray(report.improvement_tips) 
+        ? (report.improvement_tips as string[]) 
+        : []
+    };
   };
 
   if (isLoading) {
@@ -110,120 +186,139 @@ export default function CreditReport() {
     );
   }
 
-  if (!report) {
+  const mockReport = getMockReport();
+
+  if (!mockReport) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="text-center"
+        >
           <CreditCard className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-foreground mb-2">No Report Found</h2>
-          <p className="text-muted-foreground mb-6">The requested credit report was not found.</p>
-          <Button onClick={handleBackNavigation}>Go Back</Button>
-        </div>
+          <h2 className="text-xl font-bold text-foreground mb-2">Report Not Found</h2>
+          <Button onClick={() => navigate(getBackPath())}>Go Back</Button>
+        </motion.div>
       </div>
     );
   }
-
-  if (report.report_status === 'locked') {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <div className="bg-card rounded-2xl shadow-lg border border-border p-8 max-w-md w-full text-center">
-          <div className="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Lock className="w-10 h-10 text-amber-600" />
-          </div>
-          <h2 className="text-2xl font-bold text-foreground mb-2">Report Locked</h2>
-          <p className="text-muted-foreground mb-6">
-            Complete payment to view the full credit report.
-          </p>
-          <Button onClick={() => navigate(createPageUrl('SelectReports'))} className="w-full">
-            Unlock Report
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  // Get only the bureaus that were purchased
-  const purchasedBureaus = Object.keys(bureauConfig).filter(bureau => 
-    isBureauPurchased(report, bureau)
-  );
 
   return (
-    <div className="min-h-screen bg-background print:bg-white">
-      {/* Header - Hidden when printing */}
-      <header className="bg-card border-b border-border sticky top-0 z-20 shadow-sm print:hidden">
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="bg-card border-b border-border sticky top-0 z-50 print:hidden">
         <div className="max-w-7xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <Button variant="ghost" size="icon" onClick={handleBackNavigation}>
+              <Button variant="ghost" size="icon" onClick={() => navigate(getBackPath())}>
                 <ArrowLeft className="w-5 h-5" />
               </Button>
-              <div className="flex items-center gap-3">
+              <Link to="/" className="flex items-center gap-2">
                 <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
                   <CreditCard className="w-5 h-5 text-primary-foreground" />
                 </div>
-                <div>
-                  <h1 className="font-bold text-foreground">Credit Report</h1>
-                  <p className="text-xs text-muted-foreground">{report.full_name} • {report.pan_number}</p>
-                </div>
-              </div>
+                <span className="font-bold text-xl text-foreground">CreditCheck</span>
+              </Link>
             </div>
+
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={handlePrint} className="gap-2">
-                <Printer className="w-4 h-4" /> Print
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => handleDownload(selectedBureau)}
+                className="gap-2"
+              >
+                <Download className="w-4 h-4" />
+                <span className="hidden sm:inline">Download {bureauConfig[selectedBureau]?.name}</span>
               </Button>
-              <Button variant="outline" size="sm" onClick={handleDownload} className="gap-2">
-                <Download className="w-4 h-4" /> Download
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => navigate('/check-score')}
+                className="gap-2"
+              >
+                <RefreshCw className="w-4 h-4" />
+                <span className="hidden sm:inline">Refresh</span>
+              </Button>
+              <Button variant="ghost" size="sm" onClick={handleLogout} className="gap-2">
+                <LogOut className="w-4 h-4" />
+                <span className="hidden sm:inline">Logout</span>
               </Button>
             </div>
           </div>
         </div>
       </header>
 
-      {/* Bureau Tabs - Only show purchased bureaus */}
-      <div className="max-w-7xl mx-auto px-4 py-6 print:px-0 print:py-0">
-        {purchasedBureaus.length > 1 ? (
-          <Tabs value={selectedBureau} onValueChange={setSelectedBureau}>
-            <TabsList className="grid mb-6 bg-card border border-border print:hidden" style={{ gridTemplateColumns: `repeat(${purchasedBureaus.length}, 1fr)` }}>
-              {purchasedBureaus.map((key) => {
-                const config = bureauConfig[key];
-                const score = getBureauScore(report, key);
-                return (
-                  <TabsTrigger 
-                    key={key} 
-                    value={key}
-                    className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-                  >
-                    <span>{config.logo}</span>
-                    <span className="hidden sm:inline">{config.name}</span>
-                    <span className="font-bold">{score ?? '---'}</span>
-                  </TabsTrigger>
-                );
-              })}
-            </TabsList>
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-4 py-6">
+        {/* Report Header Info */}
+        <motion.div 
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-6"
+        >
+          <h1 className="text-2xl font-bold text-foreground mb-2">
+            Credit Report - {mockReport.full_name}
+          </h1>
+          <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+            <span>PAN: {mockReport.pan_number}</span>
+            <span>Mobile: {mockReport.mobile}</span>
+            <span>Generated: {format(new Date(mockReport.created_date || new Date()), 'dd MMM yyyy')}</span>
+            {mockReport.initiated_by && (
+              <span className="px-2 py-0.5 bg-primary/10 text-primary rounded text-xs">
+                Generated by: {mockReport.initiated_by === 'partner' ? 'Partner' : 'User'}
+              </span>
+            )}
+          </div>
+        </motion.div>
 
-            {purchasedBureaus.map((bureau) => (
-              <TabsContent key={bureau} value={bureau}>
-                <FullCreditReportView 
-                  report={report}
-                  bureauName={bureauConfig[bureau].fullName}
+        {/* Bureau Tabs */}
+        <Tabs value={selectedBureau} onValueChange={setSelectedBureau} className="w-full">
+          <TabsList className="grid w-full grid-cols-4 mb-6 bg-card border border-border">
+            {Object.entries(bureauConfig).map(([key, config]) => {
+              const score = getScoreForBureau(key);
+              const hasPurchased = score && score > 0;
+              return (
+                <TabsTrigger 
+                  key={key} 
+                  value={key}
+                  disabled={!hasPurchased}
+                  className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground disabled:opacity-50"
+                >
+                  <span>{config.logo}</span>
+                  <span className="hidden sm:inline">{config.name}</span>
+                  <span className="font-bold">{hasPurchased ? score : 'N/A'}</span>
+                </TabsTrigger>
+              );
+            })}
+          </TabsList>
+
+          {/* Tab Contents */}
+          {Object.keys(bureauConfig).map((bureau) => (
+            <TabsContent key={bureau} value={bureau}>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <BureauReportView 
+                  report={mockReport}
+                  bureau={bureau}
+                  config={bureauConfig[bureau]}
+                  score={getScoreForBureau(bureau)}
                 />
-              </TabsContent>
-            ))}
-          </Tabs>
-        ) : purchasedBureaus.length === 1 ? (
-          // Single bureau - no tabs needed
-          <FullCreditReportView 
-            report={report}
-            bureauName={bureauConfig[purchasedBureaus[0]].fullName}
-          />
-        ) : (
-          // No bureaus found - show default
-          <FullCreditReportView 
-            report={report}
-            bureauName="TransUnion CIBIL"
-          />
-        )}
-      </div>
+              </motion.div>
+            </TabsContent>
+          ))}
+        </Tabs>
+
+        {/* Score Repair CTA */}
+        <div className="mt-6 space-y-6">
+          <ScoreRepairCTA score={getScoreForBureau(selectedBureau)} />
+          <ImprovementTips tips={mockReport.improvement_tips} />
+        </div>
+      </main>
     </div>
   );
 }
