@@ -161,9 +161,9 @@ export default function AdminReports() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Source</TableHead>
                     <TableHead>Name</TableHead>
                     <TableHead>PAN</TableHead>
+                    <TableHead>Source</TableHead>
                     <TableHead>Average Score</TableHead>
                     <TableHead>Selected Bureaus</TableHead>
                     <TableHead>Status</TableHead>
@@ -174,6 +174,10 @@ export default function AdminReports() {
                 <TableBody>
                   {filteredReports.map((report) => (
                     <TableRow key={report.id}>
+                      <TableCell className="font-medium">{report.full_name}</TableCell>
+                      <TableCell>
+                        <span className="font-mono text-sm">{report.pan_number}</span>
+                      </TableCell>
                       <TableCell>
                         {report.partner_id ? (
                           <div className="flex items-center gap-2">
@@ -191,10 +195,6 @@ export default function AdminReports() {
                             User
                           </Badge>
                         )}
-                      </TableCell>
-                      <TableCell className="font-medium">{report.full_name}</TableCell>
-                      <TableCell>
-                        <span className="font-mono text-sm">{report.pan_number}</span>
                       </TableCell>
                       <TableCell>
                         <span className="font-bold text-primary">{report.average_score || 'N/A'}</span>
