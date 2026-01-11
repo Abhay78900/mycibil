@@ -20,21 +20,8 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 
-interface CreditReport {
-  id: string;
-  full_name: string;
-  pan_number: string;
-  average_score: number | null;
-  cibil_score: number | null;
-  experian_score: number | null;
-  equifax_score: number | null;
-  crif_score: number | null;
-  selected_bureaus: string[] | null;
-  report_status: string | null;
-  is_high_risk: boolean | null;
-  risk_flags: any;
-  created_at: string;
-}
+// Use CreditReport from types
+import { CreditReport } from '@/types';
 
 // Check if a bureau is unlocked for a report
 const isBureauUnlocked = (report: CreditReport, bureau: string): boolean => {
@@ -192,7 +179,7 @@ export default function Dashboard() {
                           {latestReport.is_high_risk ? 'High Risk Profile' : 'Healthy Profile'}
                         </p>
                         <p className="text-sm text-muted-foreground">
-                          {latestReport.risk_flags?.length || 0} risk flags detected
+                          {Array.isArray(latestReport.risk_flags) ? latestReport.risk_flags.length : 0} risk flags detected
                         </p>
                       </div>
                     </div>
