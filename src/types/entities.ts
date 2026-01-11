@@ -37,6 +37,7 @@ export interface CreditCard {
   status: string;
 }
 
+// CreditReport for mock data (display purposes)
 export interface CreditReport {
   id: string;
   user_email?: string;
@@ -60,6 +61,37 @@ export interface CreditReport {
   partner_id?: string;
   report_generated_at?: string;
   created_date?: string;
+}
+
+// CreditReportEntity matches the Supabase credit_reports table schema
+export interface CreditReportEntity {
+  id: string;
+  user_id: string;
+  partner_id: string | null;
+  full_name: string;
+  pan_number: string;
+  date_of_birth: string | null;
+  selected_bureaus: string[] | null;
+  cibil_score: number | null;
+  experian_score: number | null;
+  equifax_score: number | null;
+  crif_score: number | null;
+  average_score: number | null;
+  raw_cibil_data: unknown;
+  raw_experian_data: unknown;
+  raw_equifax_data: unknown;
+  raw_crif_data: unknown;
+  active_loans: unknown;
+  credit_cards: unknown;
+  enquiries: unknown;
+  risk_flags: unknown;
+  improvement_tips: unknown;
+  ai_analysis: string | null;
+  is_high_risk: boolean | null;
+  report_status: 'locked' | 'unlocked' | 'processing' | 'failed' | null;
+  amount_paid: number | null;
+  created_at: string | null;
+  updated_at: string | null;
 }
 
 export interface Partner {
