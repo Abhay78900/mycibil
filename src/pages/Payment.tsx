@@ -77,7 +77,7 @@ export default function Payment() {
       );
 
       // Update report with scores
-      const { error: updateError } = await supabase
+      const { error: updateError, data: updatedData } = await supabase
         .from('credit_reports')
         .update({
           ...mockScores,
@@ -98,9 +98,18 @@ export default function Payment() {
             'Keep older credit accounts active'
           ]
         })
-        .eq('id', reportId);
+        .eq('id', reportId)
+        .select();
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('Report update failed:', updateError);
+        throw updateError;
+      }
+
+      // Verify the update actually happened
+      if (!updatedData || updatedData.length === 0) {
+        throw new Error('Failed to update report - RLS policy may be blocking the update');
+      }
 
       // Update transaction
       await supabase
