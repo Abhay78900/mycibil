@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useBureauPricing } from '@/hooks/useBureauPricing';
+import { usePartnerWalletMode } from '@/hooks/usePartnerWalletMode';
 import PartnerSidebar from '@/components/partner/PartnerSidebar';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,6 +23,7 @@ export default function PartnerGenerate() {
   const { user, userRole, signOut, loading } = useAuth();
   const navigate = useNavigate();
   const { pricing, loading: pricingLoading, getPartnerPrice, calculatePartnerTotal } = useBureauPricing();
+  const { isReportCountMode, loading: walletModeLoading } = usePartnerWalletMode();
   const [partner, setPartner] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -67,7 +69,12 @@ export default function PartnerGenerate() {
     navigate('/');
   };
 
-  const totalCost = calculatePartnerTotal(selectedBureaus);
+  // In report count mode, cost is always 1 report regardless of bureaus selected
+  const totalCost = isReportCountMode ? 1 : calculatePartnerTotal(selectedBureaus);
+  const currentBalance = isReportCountMode 
+    ? Number(partner?.report_count || 0)
+    : Number(partner?.wallet_balance || 0);
+  const hasInsufficientBalance = currentBalance < totalCost;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,14 +89,16 @@ export default function PartnerGenerate() {
       return;
     }
 
-    if (Number(partner?.wallet_balance || 0) < totalCost) {
-      toast.error('Insufficient wallet balance');
+    if (hasInsufficientBalance) {
+      toast.error(isReportCountMode ? 'Insufficient reports' : 'Insufficient wallet balance');
       return;
     }
 
     setIsSubmitting(true);
 
     try {
+      const amountPaid = isReportCountMode ? 0 : totalCost;
+
       // Create credit report
       const { data: report, error: reportError } = await supabase
         .from('credit_reports')
@@ -101,21 +110,31 @@ export default function PartnerGenerate() {
           date_of_birth: formData.dateOfBirth || null,
           selected_bureaus: selectedBureaus,
           report_status: 'processing',
-          amount_paid: totalCost,
+          amount_paid: amountPaid,
         })
         .select()
         .single();
 
       if (reportError) throw reportError;
 
-      // Deduct from wallet
-      await supabase
-        .from('partners')
-        .update({ 
-          wallet_balance: Number(partner.wallet_balance) - totalCost,
-          total_revenue: Number(partner.total_revenue || 0) + totalCost,
-        })
-        .eq('id', partner.id);
+      // Deduct from wallet based on mode
+      if (isReportCountMode) {
+        await supabase
+          .from('partners')
+          .update({ 
+            report_count: Number(partner.report_count || 0) - 1,
+            total_revenue: Number(partner.total_revenue || 0) + 1, // Track as 1 report
+          })
+          .eq('id', partner.id);
+      } else {
+        await supabase
+          .from('partners')
+          .update({ 
+            wallet_balance: Number(partner.wallet_balance) - totalCost,
+            total_revenue: Number(partner.total_revenue || 0) + totalCost,
+          })
+          .eq('id', partner.id);
+      }
 
       // Create transaction
       await supabase
@@ -124,11 +143,14 @@ export default function PartnerGenerate() {
           user_id: user?.id,
           partner_id: partner.id,
           report_id: report.id,
-          amount: totalCost,
+          amount: amountPaid,
           type: 'report_generation',
           status: 'success',
           payment_method: 'wallet',
           description: `Report for ${formData.fullName} - Bureaus: ${selectedBureaus.join(', ')}`,
+          metadata: isReportCountMode 
+            ? { wallet_mode: 'report_count', reports_deducted: 1 }
+            : { wallet_mode: 'amount' }
         });
 
       // Simulate score generation
@@ -162,7 +184,7 @@ export default function PartnerGenerate() {
     }
   };
 
-  if (loading || isLoading || pricingLoading) {
+  if (loading || isLoading || pricingLoading || walletModeLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -224,7 +246,12 @@ export default function PartnerGenerate() {
             <Card className="mb-6">
               <CardHeader>
                 <CardTitle>Select Bureaus</CardTitle>
-                <CardDescription>Choose which credit bureaus to fetch (Partner pricing applies)</CardDescription>
+                <CardDescription>
+                  {isReportCountMode 
+                    ? 'Choose bureaus to include (1 report deducted regardless of selection)'
+                    : 'Choose which credit bureaus to fetch (Partner pricing applies)'
+                  }
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 gap-4">
@@ -260,7 +287,9 @@ export default function PartnerGenerate() {
                           </div>
                           <span className="font-medium">{bureau.label}</span>
                         </div>
-                        <span className="text-sm text-muted-foreground">₹{price}</span>
+                        {!isReportCountMode && (
+                          <span className="text-sm text-muted-foreground">₹{price}</span>
+                        )}
                       </div>
                     );
                   })}
@@ -274,39 +303,58 @@ export default function PartnerGenerate() {
                   <span className="text-muted-foreground">Selected Bureaus</span>
                   <span className="font-medium">{selectedBureaus.length}</span>
                 </div>
-                <div className="space-y-1 text-sm mb-4">
-                  {selectedBureaus.map(id => {
-                    const bureau = bureauOptions.find(b => b.id === id);
-                    return (
-                      <div key={id} className="flex justify-between text-muted-foreground">
-                        <span>{bureau?.label}</span>
-                        <span>₹{getPartnerPrice(id)}</span>
-                      </div>
-                    );
-                  })}
-                </div>
+
+                {!isReportCountMode && (
+                  <div className="space-y-1 text-sm mb-4">
+                    {selectedBureaus.map(id => {
+                      const bureau = bureauOptions.find(b => b.id === id);
+                      return (
+                        <div key={id} className="flex justify-between text-muted-foreground">
+                          <span>{bureau?.label}</span>
+                          <span>₹{getPartnerPrice(id)}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
                 <div className="flex items-center justify-between mb-4 border-t pt-3">
-                  <span className="font-semibold">Total Cost</span>
-                  <span className="text-2xl font-bold text-foreground">₹{totalCost}</span>
-                </div>
-                <div className="flex items-center justify-between mb-6 text-sm">
-                  <span className="text-muted-foreground">Wallet Balance</span>
-                  <span className={Number(partner?.wallet_balance || 0) < totalCost ? 'text-destructive' : 'text-success'}>
-                    ₹{Number(partner?.wallet_balance || 0).toLocaleString()}
+                  <span className="font-semibold">
+                    {isReportCountMode ? 'Cost' : 'Total Cost'}
+                  </span>
+                  <span className="text-2xl font-bold text-foreground">
+                    {isReportCountMode ? '1 Report' : `₹${totalCost}`}
                   </span>
                 </div>
 
-                {Number(partner?.wallet_balance || 0) < totalCost && (
+                <div className="flex items-center justify-between mb-6 text-sm">
+                  <span className="text-muted-foreground">
+                    {isReportCountMode ? 'Reports Remaining' : 'Wallet Balance'}
+                  </span>
+                  <span className={hasInsufficientBalance ? 'text-destructive' : 'text-success'}>
+                    {isReportCountMode 
+                      ? `${currentBalance} report(s)`
+                      : `₹${currentBalance.toLocaleString()}`
+                    }
+                  </span>
+                </div>
+
+                {hasInsufficientBalance && (
                   <div className="flex items-center gap-2 p-3 bg-destructive/10 text-destructive rounded-lg mb-4">
                     <AlertCircle className="w-4 h-4" />
-                    <span className="text-sm">Insufficient balance. Please add funds.</span>
+                    <span className="text-sm">
+                      {isReportCountMode 
+                        ? 'Insufficient reports. Please add more reports.'
+                        : 'Insufficient balance. Please add funds.'
+                      }
+                    </span>
                   </div>
                 )}
 
                 <Button 
                   type="submit" 
                   className="w-full" 
-                  disabled={isSubmitting || Number(partner?.wallet_balance || 0) < totalCost}
+                  disabled={isSubmitting || hasInsufficientBalance}
                 >
                   {isSubmitting ? (
                     <>

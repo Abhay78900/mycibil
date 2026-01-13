@@ -153,10 +153,12 @@ export type Database = {
           id: string
           name: string
           owner_id: string
+          report_count: number | null
           status: string | null
           total_revenue: number | null
           updated_at: string | null
           wallet_balance: number | null
+          wallet_mode: string | null
         }
         Insert: {
           commission_rate?: number | null
@@ -165,10 +167,12 @@ export type Database = {
           id?: string
           name: string
           owner_id: string
+          report_count?: number | null
           status?: string | null
           total_revenue?: number | null
           updated_at?: string | null
           wallet_balance?: number | null
+          wallet_mode?: string | null
         }
         Update: {
           commission_rate?: number | null
@@ -177,10 +181,12 @@ export type Database = {
           id?: string
           name?: string
           owner_id?: string
+          report_count?: number | null
           status?: string | null
           total_revenue?: number | null
           updated_at?: string | null
           wallet_balance?: number | null
+          wallet_mode?: string | null
         }
         Relationships: []
       }
@@ -241,6 +247,33 @@ export type Database = {
           pan_number?: string | null
           phone?: string | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      system_settings: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          key: string
+          updated_at: string | null
+          value: Json
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          key: string
+          updated_at?: string | null
+          value?: Json
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          key?: string
+          updated_at?: string | null
+          value?: Json
         }
         Relationships: []
       }

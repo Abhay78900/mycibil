@@ -8,19 +8,26 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Settings, IndianRupee, Loader2, Save, Users, Building2 } from 'lucide-react';
+import { Settings, IndianRupee, Loader2, Save, Users, Building2, Wallet, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { BureauPricing } from '@/types/bureauPricing';
+import { usePartnerWalletMode } from '@/hooks/usePartnerWalletMode';
 
 export default function AdminSettings() {
   const { userRole, signOut, loading } = useAuth();
   const navigate = useNavigate();
+  const { settings: walletSettings, loading: walletLoading, updateSettings: updateWalletSettings } = usePartnerWalletMode();
+  
   const [bureauPricing, setBureauPricing] = useState<BureauPricing[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [editedPricing, setEditedPricing] = useState<Record<string, { user_price: number; partner_price: number }>>({});
+  
+  // Partner wallet mode settings
+  const [reportCountModeEnabled, setReportCountModeEnabled] = useState(false);
+  const [reportUnitPrice, setReportUnitPrice] = useState(99);
+  const [isSavingWalletSettings, setIsSavingWalletSettings] = useState(false);
 
   useEffect(() => {
     if (!loading && userRole !== 'admin') {
@@ -32,6 +39,13 @@ export default function AdminSettings() {
     }
   }, [userRole, loading, navigate]);
 
+  useEffect(() => {
+    if (!walletLoading) {
+      setReportCountModeEnabled(walletSettings.enabled);
+      setReportUnitPrice(walletSettings.report_unit_price);
+    }
+  }, [walletSettings, walletLoading]);
+
   const loadSettings = async () => {
     try {
       const { data, error } = await supabase
@@ -42,7 +56,6 @@ export default function AdminSettings() {
       if (error) throw error;
       setBureauPricing(data || []);
       
-      // Initialize edited pricing with current values
       const initial: Record<string, { user_price: number; partner_price: number }> = {};
       data?.forEach(bureau => {
         initial[bureau.id] = {
@@ -89,8 +102,6 @@ export default function AdminSettings() {
       );
 
       await Promise.all(updates);
-      
-      // Refresh data
       await loadSettings();
       toast.success('Pricing updated successfully!');
     } catch (error) {
@@ -98,6 +109,29 @@ export default function AdminSettings() {
       toast.error('Failed to save pricing');
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleSaveWalletSettings = async () => {
+    if (reportUnitPrice < 1) {
+      toast.error('Report unit price must be at least ₹1');
+      return;
+    }
+
+    setIsSavingWalletSettings(true);
+    try {
+      const success = await updateWalletSettings({
+        enabled: reportCountModeEnabled,
+        report_unit_price: reportUnitPrice,
+      });
+
+      if (success) {
+        toast.success('Partner wallet settings updated!');
+      } else {
+        toast.error('Failed to update wallet settings');
+      }
+    } finally {
+      setIsSavingWalletSettings(false);
     }
   };
 
@@ -126,7 +160,12 @@ export default function AdminSettings() {
     });
   };
 
-  if (loading || isLoading) {
+  const hasWalletChanges = () => {
+    return reportCountModeEnabled !== walletSettings.enabled ||
+           reportUnitPrice !== walletSettings.report_unit_price;
+  };
+
+  if (loading || isLoading || walletLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -142,8 +181,127 @@ export default function AdminSettings() {
         <div className="max-w-5xl mx-auto">
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-foreground">System Settings</h1>
-            <p className="text-muted-foreground mt-1">Configure bureau-wise pricing for users and partners</p>
+            <p className="text-muted-foreground mt-1">Configure bureau pricing and partner wallet modes</p>
           </div>
+
+          {/* Partner Wallet Mode Settings */}
+          <Card className="mb-8">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Wallet className="w-5 h-5 text-primary" />
+                    Partner Wallet Settings
+                  </CardTitle>
+                  <CardDescription className="mt-1">
+                    Configure wallet mode for all partners
+                  </CardDescription>
+                </div>
+                {hasWalletChanges() && (
+                  <Button onClick={handleSaveWalletSettings} disabled={isSavingWalletSettings}>
+                    {isSavingWalletSettings ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Save className="w-4 h-4 mr-2" />
+                    )}
+                    Save Settings
+                  </Button>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Report Count Mode Toggle */}
+              <div className="flex items-center justify-between p-4 bg-accent/30 rounded-lg">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                    <FileText className="w-6 h-6 text-primary" />
+                  </div>
+                  <div>
+                    <Label className="text-base font-semibold">Report Count Mode</Label>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      When enabled, partner wallets track report count instead of currency balance
+                    </p>
+                  </div>
+                </div>
+                <Switch
+                  checked={reportCountModeEnabled}
+                  onCheckedChange={setReportCountModeEnabled}
+                />
+              </div>
+
+              {/* Report Unit Price */}
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="p-4 border rounded-lg">
+                  <Label className="text-sm font-medium text-muted-foreground">Report Unit Price</Label>
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className="text-lg font-bold">₹</span>
+                    <Input
+                      type="number"
+                      min="1"
+                      value={reportUnitPrice}
+                      onChange={(e) => setReportUnitPrice(Number(e.target.value) || 99)}
+                      className="w-28"
+                    />
+                    <span className="text-sm text-muted-foreground">= 1 Report</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    This value is used to convert recharge amount to report count
+                  </p>
+                </div>
+
+                <div className="p-4 border rounded-lg bg-muted/30">
+                  <Label className="text-sm font-medium text-muted-foreground">Conversion Examples</Label>
+                  <div className="space-y-1 mt-2 text-sm">
+                    <div className="flex justify-between">
+                      <span>₹{reportUnitPrice}</span>
+                      <span className="font-medium">= 1 report</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>₹{reportUnitPrice * 5}</span>
+                      <span className="font-medium">= 5 reports</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>₹{reportUnitPrice * 10}</span>
+                      <span className="font-medium">= 10 reports</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Mode Explanation Cards */}
+              <div className="grid md:grid-cols-2 gap-4 pt-4 border-t">
+                <Card className={`${!reportCountModeEnabled ? 'ring-2 ring-primary' : ''}`}>
+                  <CardContent className="pt-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <IndianRupee className="w-5 h-5 text-accent" />
+                      <h4 className="font-semibold">Amount Mode {!reportCountModeEnabled && <span className="text-xs text-primary">(Active)</span>}</h4>
+                    </div>
+                    <ul className="text-sm text-muted-foreground space-y-1">
+                      <li>• Wallet stores currency balance (₹)</li>
+                      <li>• Bureau-wise partner pricing applies</li>
+                      <li>• Shows: "Wallet Balance: ₹X"</li>
+                      <li>• Deducts exact bureau price per report</li>
+                    </ul>
+                  </CardContent>
+                </Card>
+
+                <Card className={`${reportCountModeEnabled ? 'ring-2 ring-primary' : ''}`}>
+                  <CardContent className="pt-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <FileText className="w-5 h-5 text-primary" />
+                      <h4 className="font-semibold">Report Count Mode {reportCountModeEnabled && <span className="text-xs text-primary">(Active)</span>}</h4>
+                    </div>
+                    <ul className="text-sm text-muted-foreground space-y-1">
+                      <li>• Wallet stores report count</li>
+                      <li>• Bureau pricing is ignored</li>
+                      <li>• Shows: "Reports Remaining: X"</li>
+                      <li>• Deducts 1 report per generation</li>
+                    </ul>
+                  </CardContent>
+                </Card>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Bureau-wise Pricing Configuration */}
           <Card className="mb-8">
@@ -156,6 +314,9 @@ export default function AdminSettings() {
                   </CardTitle>
                   <CardDescription className="mt-1">
                     Set individual prices for each credit bureau for Users and Partners
+                    {reportCountModeEnabled && (
+                      <span className="text-warning ml-2">(Partner prices ignored in Report Count Mode)</span>
+                    )}
                   </CardDescription>
                 </div>
                 {hasChanges() && (
@@ -185,6 +346,7 @@ export default function AdminSettings() {
                       <div className="flex items-center gap-2">
                         <Building2 className="w-4 h-4 text-accent" />
                         Partner Price (₹)
+                        {reportCountModeEnabled && <span className="text-xs text-warning">(Ignored)</span>}
                       </div>
                     </TableHead>
                     <TableHead className="w-[100px]">Active</TableHead>
@@ -219,9 +381,10 @@ export default function AdminSettings() {
                             type="number"
                             min="0"
                             step="1"
-                            className="w-24"
+                            className={`w-24 ${reportCountModeEnabled ? 'opacity-50' : ''}`}
                             value={editedPricing[bureau.id]?.partner_price ?? bureau.partner_price}
                             onChange={(e) => handlePriceChange(bureau.id, 'partner_price', e.target.value)}
+                            disabled={reportCountModeEnabled}
                           />
                         </div>
                       </TableCell>
@@ -235,9 +398,6 @@ export default function AdminSettings() {
                   ))}
                 </TableBody>
               </Table>
-              {bureauPricing.length === 0 && (
-                <p className="text-center text-muted-foreground py-8">No bureau pricing configured</p>
-              )}
 
               {/* Pricing Summary */}
               <div className="mt-6 grid md:grid-cols-2 gap-4">
@@ -258,11 +418,14 @@ export default function AdminSettings() {
                   </CardContent>
                 </Card>
 
-                <Card className="bg-accent/5 border-accent/20">
+                <Card className={`bg-accent/5 border-accent/20 ${reportCountModeEnabled ? 'opacity-50' : ''}`}>
                   <CardContent className="pt-4">
                     <div className="flex items-center gap-2 mb-3">
                       <Building2 className="w-5 h-5 text-accent" />
-                      <h4 className="font-semibold">Partner Pricing Summary</h4>
+                      <h4 className="font-semibold">
+                        Partner Pricing Summary
+                        {reportCountModeEnabled && <span className="text-xs text-warning ml-2">(Not used)</span>}
+                      </h4>
                     </div>
                     <div className="space-y-1 text-sm">
                       {bureauPricing.filter(b => b.is_active).map(bureau => (
