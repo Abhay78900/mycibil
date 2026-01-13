@@ -23,7 +23,7 @@ export default function PartnerGenerate() {
   const { user, userRole, signOut, loading } = useAuth();
   const navigate = useNavigate();
   const { pricing, loading: pricingLoading, getPartnerPrice, calculatePartnerTotal } = useBureauPricing();
-  const { isReportCountMode, loading: walletModeLoading } = usePartnerWalletMode();
+  const { isReportCountMode, reportUnitPrice, getEffectiveReportCount, loading: walletModeLoading } = usePartnerWalletMode();
   const [partner, setPartner] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -71,9 +71,9 @@ export default function PartnerGenerate() {
 
   // In report count mode, cost is always 1 report regardless of bureaus selected
   const totalCost = isReportCountMode ? 1 : calculatePartnerTotal(selectedBureaus);
-  const currentBalance = isReportCountMode 
-    ? Number(partner?.report_count || 0)
-    : Number(partner?.wallet_balance || 0);
+  const walletBalance = Number(partner?.wallet_balance || 0);
+  const effectiveReportCount = getEffectiveReportCount(walletBalance, Number(partner?.report_count || 0));
+  const currentBalance = isReportCountMode ? effectiveReportCount : walletBalance;
   const hasInsufficientBalance = currentBalance < totalCost;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -117,20 +117,22 @@ export default function PartnerGenerate() {
 
       if (reportError) throw reportError;
 
-      // Deduct from wallet based on mode
+      // Deduct from wallet - always deduct from wallet_balance
       if (isReportCountMode) {
+        // Deduct amount equivalent to 1 report
+        const deductionAmount = reportUnitPrice;
         await supabase
           .from('partners')
           .update({ 
-            report_count: Number(partner.report_count || 0) - 1,
-            total_revenue: Number(partner.total_revenue || 0) + 1, // Track as 1 report
+            wallet_balance: walletBalance - deductionAmount,
+            total_revenue: Number(partner.total_revenue || 0) + deductionAmount,
           })
           .eq('id', partner.id);
       } else {
         await supabase
           .from('partners')
           .update({ 
-            wallet_balance: Number(partner.wallet_balance) - totalCost,
+            wallet_balance: walletBalance - totalCost,
             total_revenue: Number(partner.total_revenue || 0) + totalCost,
           })
           .eq('id', partner.id);

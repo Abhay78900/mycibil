@@ -14,7 +14,7 @@ import { toast } from 'sonner';
 export default function PartnerDashboard() {
   const { user, userRole, signOut, loading } = useAuth();
   const navigate = useNavigate();
-  const { isReportCountMode, loading: walletModeLoading } = usePartnerWalletMode();
+  const { isReportCountMode, getEffectiveReportCount, loading: walletModeLoading } = usePartnerWalletMode();
   const [partner, setPartner] = useState<any>(null);
   const [stats, setStats] = useState({
     totalReports: 0,
@@ -119,7 +119,7 @@ export default function PartnerDashboard() {
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <WalletCard 
               balance={Number(partner?.wallet_balance || 0)}
-              reportCount={Number(partner?.report_count || 0)}
+              effectiveReportCount={getEffectiveReportCount(Number(partner?.wallet_balance || 0), Number(partner?.report_count || 0))}
               isReportCountMode={isReportCountMode}
               onAddFunds={() => navigate('/partner/wallet')}
             />
