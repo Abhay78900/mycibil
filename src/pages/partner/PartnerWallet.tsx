@@ -2,21 +2,23 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { usePartnerWalletMode } from '@/hooks/usePartnerWalletMode';
 import PartnerSidebar from '@/components/partner/PartnerSidebar';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
-import { Wallet, Plus, Loader2, ArrowUpRight, ArrowDownLeft, IndianRupee } from 'lucide-react';
+import { Wallet, Plus, Loader2, ArrowUpRight, ArrowDownLeft, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
 export default function PartnerWallet() {
   const { user, userRole, signOut, loading } = useAuth();
   const navigate = useNavigate();
+  const { isReportCountMode, reportUnitPrice, calculateReportsFromAmount, loading: walletModeLoading } = usePartnerWalletMode();
   const [partner, setPartner] = useState<any>(null);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -76,27 +78,66 @@ export default function PartnerWallet() {
 
     setIsAdding(true);
     try {
-      // Update wallet balance
-      await supabase
-        .from('partners')
-        .update({ wallet_balance: Number(partner.wallet_balance) + amount })
-        .eq('id', partner.id);
+      if (isReportCountMode) {
+        // Report count mode: add reports
+        const reportsToAdd = calculateReportsFromAmount(amount);
+        if (reportsToAdd < 1) {
+          toast.error(`Minimum amount for 1 report is ₹${reportUnitPrice}`);
+          setIsAdding(false);
+          return;
+        }
 
-      // Create transaction
-      await supabase
-        .from('transactions')
-        .insert({
-          user_id: user?.id,
-          partner_id: partner.id,
-          amount,
-          type: 'wallet_topup',
-          status: 'success',
-          payment_method: 'upi',
-          description: 'Wallet top-up',
-        });
+        await supabase
+          .from('partners')
+          .update({ 
+            report_count: Number(partner.report_count || 0) + reportsToAdd,
+            wallet_mode: 'report_count'
+          })
+          .eq('id', partner.id);
 
-      setPartner({ ...partner, wallet_balance: Number(partner.wallet_balance) + amount });
-      toast.success(`₹${amount} added to wallet`);
+        // Create transaction with report count info
+        await supabase
+          .from('transactions')
+          .insert({
+            user_id: user?.id,
+            partner_id: partner.id,
+            amount,
+            type: 'wallet_topup',
+            status: 'success',
+            payment_method: 'upi',
+            description: `Added ${reportsToAdd} report(s) (₹${amount})`,
+            metadata: { reports_added: reportsToAdd, wallet_mode: 'report_count' }
+          });
+
+        setPartner({ ...partner, report_count: Number(partner.report_count || 0) + reportsToAdd });
+        toast.success(`${reportsToAdd} report(s) added to wallet`);
+      } else {
+        // Amount mode: add currency
+        await supabase
+          .from('partners')
+          .update({ 
+            wallet_balance: Number(partner.wallet_balance) + amount,
+            wallet_mode: 'amount'
+          })
+          .eq('id', partner.id);
+
+        await supabase
+          .from('transactions')
+          .insert({
+            user_id: user?.id,
+            partner_id: partner.id,
+            amount,
+            type: 'wallet_topup',
+            status: 'success',
+            payment_method: 'upi',
+            description: 'Wallet top-up',
+            metadata: { wallet_mode: 'amount' }
+          });
+
+        setPartner({ ...partner, wallet_balance: Number(partner.wallet_balance) + amount });
+        toast.success(`₹${amount} added to wallet`);
+      }
+
       setIsDialogOpen(false);
       setAddAmount('');
       loadData();
@@ -107,7 +148,9 @@ export default function PartnerWallet() {
     }
   };
 
-  if (loading || isLoading) {
+  const reportsFromAmount = addAmount ? calculateReportsFromAmount(Number(addAmount)) : 0;
+
+  if (loading || isLoading || walletModeLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -123,29 +166,46 @@ export default function PartnerWallet() {
         <div className="max-w-4xl mx-auto">
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-foreground">Wallet</h1>
-            <p className="text-muted-foreground mt-1">Manage your wallet balance</p>
+            <p className="text-muted-foreground mt-1">
+              {isReportCountMode ? 'Manage your report balance' : 'Manage your wallet balance'}
+            </p>
           </div>
 
           <Card className="mb-8 overflow-hidden">
             <div className="bg-gradient-to-r from-secondary to-secondary/80 p-8 text-secondary-foreground">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-secondary-foreground/80 mb-2">Available Balance</p>
-                  <p className="text-5xl font-bold">₹{Number(partner?.wallet_balance || 0).toLocaleString()}</p>
-                  <p className="text-sm mt-2 text-secondary-foreground/70">
-                    Commission Rate: {partner?.commission_rate}%
-                  </p>
+                  {isReportCountMode ? (
+                    <>
+                      <p className="text-secondary-foreground/80 mb-2">Reports Remaining</p>
+                      <p className="text-5xl font-bold">{Number(partner?.report_count || 0)}</p>
+                      <p className="text-sm mt-2 text-secondary-foreground/70 flex items-center gap-2">
+                        <FileText className="w-4 h-4" />
+                        1 report used per generation
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-secondary-foreground/80 mb-2">Available Balance</p>
+                      <p className="text-5xl font-bold">₹{Number(partner?.wallet_balance || 0).toLocaleString()}</p>
+                      <p className="text-sm mt-2 text-secondary-foreground/70">
+                        Commission Rate: {partner?.commission_rate}%
+                      </p>
+                    </>
+                  )}
                 </div>
                 <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                   <DialogTrigger asChild>
                     <Button size="lg" className="bg-background/20 hover:bg-background/30 text-secondary-foreground border-0">
                       <Plus className="w-5 h-5 mr-2" />
-                      Add Funds
+                      {isReportCountMode ? 'Add Reports' : 'Add Funds'}
                     </Button>
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
-                      <DialogTitle>Add Funds to Wallet</DialogTitle>
+                      <DialogTitle>
+                        {isReportCountMode ? 'Add Reports to Wallet' : 'Add Funds to Wallet'}
+                      </DialogTitle>
                     </DialogHeader>
                     <div className="py-4">
                       <Label htmlFor="amount">Amount (₹)</Label>
@@ -159,6 +219,18 @@ export default function PartnerWallet() {
                         className="mt-2"
                       />
                       <p className="text-sm text-muted-foreground mt-2">Minimum: ₹100</p>
+                      
+                      {isReportCountMode && addAmount && (
+                        <div className="mt-4 p-3 bg-accent/30 rounded-lg">
+                          <p className="text-sm">
+                            <span className="text-muted-foreground">Reports you'll receive: </span>
+                            <span className="font-bold text-primary">{reportsFromAmount}</span>
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            (₹{reportUnitPrice} = 1 report)
+                          </p>
+                        </div>
+                      )}
                     </div>
                     <DialogFooter>
                       <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
@@ -166,7 +238,10 @@ export default function PartnerWallet() {
                       </Button>
                       <Button onClick={handleAddFunds} disabled={isAdding}>
                         {isAdding ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                        Add ₹{addAmount || 0}
+                        {isReportCountMode 
+                          ? `Add ${reportsFromAmount} Report(s)` 
+                          : `Add ₹${addAmount || 0}`
+                        }
                       </Button>
                     </DialogFooter>
                   </DialogContent>
@@ -185,42 +260,55 @@ export default function PartnerWallet() {
                   <TableRow>
                     <TableHead>Type</TableHead>
                     <TableHead>Description</TableHead>
-                    <TableHead>Amount</TableHead>
+                    <TableHead>{isReportCountMode ? 'Reports/Amount' : 'Amount'}</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Date</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {transactions.map((txn) => (
-                    <TableRow key={txn.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          {txn.type === 'wallet_topup' ? (
-                            <ArrowDownLeft className="w-4 h-4 text-success" />
+                  {transactions.map((txn) => {
+                    const metadata = txn.metadata as { reports_added?: number; reports_deducted?: number } | null;
+                    return (
+                      <TableRow key={txn.id}>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            {txn.type === 'wallet_topup' ? (
+                              <ArrowDownLeft className="w-4 h-4 text-success" />
+                            ) : (
+                              <ArrowUpRight className="w-4 h-4 text-destructive" />
+                            )}
+                            <span className="capitalize">{txn.type.replace('_', ' ')}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {txn.description || '-'}
+                        </TableCell>
+                        <TableCell>
+                          {isReportCountMode && metadata?.reports_added ? (
+                            <span className="font-bold text-success">
+                              +{metadata.reports_added} reports
+                            </span>
+                          ) : isReportCountMode && metadata?.reports_deducted ? (
+                            <span className="font-bold text-foreground">
+                              -{metadata.reports_deducted} report
+                            </span>
                           ) : (
-                            <ArrowUpRight className="w-4 h-4 text-destructive" />
+                            <span className={`font-bold ${txn.type === 'wallet_topup' ? 'text-success' : 'text-foreground'}`}>
+                              {txn.type === 'wallet_topup' ? '+' : '-'}₹{Number(txn.amount).toLocaleString()}
+                            </span>
                           )}
-                          <span className="capitalize">{txn.type.replace('_', ' ')}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {txn.description || '-'}
-                      </TableCell>
-                      <TableCell>
-                        <span className={`font-bold ${txn.type === 'wallet_topup' ? 'text-success' : 'text-foreground'}`}>
-                          {txn.type === 'wallet_topup' ? '+' : '-'}₹{Number(txn.amount).toLocaleString()}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={txn.status === 'success' ? 'default' : 'secondary'}>
-                          {txn.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {txn.created_at ? format(new Date(txn.created_at), 'MMM dd, yyyy HH:mm') : 'N/A'}
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={txn.status === 'success' ? 'default' : 'secondary'}>
+                            {txn.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {txn.created_at ? format(new Date(txn.created_at), 'MMM dd, yyyy HH:mm') : 'N/A'}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
               {transactions.length === 0 && (

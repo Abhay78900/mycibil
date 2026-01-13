@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { usePartnerWalletMode } from '@/hooks/usePartnerWalletMode';
 import PartnerSidebar from '@/components/partner/PartnerSidebar';
 import WalletCard from '@/components/partner/WalletCard';
 import StatsCard from '@/components/admin/StatsCard';
@@ -13,6 +14,7 @@ import { toast } from 'sonner';
 export default function PartnerDashboard() {
   const { user, userRole, signOut, loading } = useAuth();
   const navigate = useNavigate();
+  const { isReportCountMode, loading: walletModeLoading } = usePartnerWalletMode();
   const [partner, setPartner] = useState<any>(null);
   const [stats, setStats] = useState({
     totalReports: 0,
@@ -38,7 +40,6 @@ export default function PartnerDashboard() {
         .maybeSingle();
 
       if (!partnerData) {
-        // Redirect to partner registration if no partner account
         navigate('/partner/register');
         return;
       }
@@ -80,7 +81,7 @@ export default function PartnerDashboard() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  if (loading || isLoading) {
+  if (loading || isLoading || walletModeLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -117,7 +118,9 @@ export default function PartnerDashboard() {
 
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <WalletCard 
-              balance={Number(partner?.wallet_balance || 0)} 
+              balance={Number(partner?.wallet_balance || 0)}
+              reportCount={Number(partner?.report_count || 0)}
+              isReportCountMode={isReportCountMode}
               onAddFunds={() => navigate('/partner/wallet')}
             />
             <StatsCard 
