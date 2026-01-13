@@ -2,25 +2,26 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { useBureauPricing } from '@/hooks/useBureauPricing';
 import PartnerSidebar from '@/components/partner/PartnerSidebar';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
-import { FileText, Loader2, CreditCard, AlertCircle } from 'lucide-react';
+import { FileText, Loader2, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 const bureauOptions = [
-  { id: 'cibil', label: 'CIBIL', price: 50 },
-  { id: 'experian', label: 'Experian', price: 50 },
-  { id: 'equifax', label: 'Equifax', price: 50 },
-  { id: 'crif', label: 'CRIF High Mark', price: 49 },
+  { id: 'cibil', label: 'TransUnion CIBIL' },
+  { id: 'experian', label: 'Experian' },
+  { id: 'equifax', label: 'Equifax' },
+  { id: 'crif', label: 'CRIF High Mark' },
 ];
 
 export default function PartnerGenerate() {
   const { user, userRole, signOut, loading } = useAuth();
   const navigate = useNavigate();
+  const { pricing, loading: pricingLoading, getPartnerPrice, calculatePartnerTotal } = useBureauPricing();
   const [partner, setPartner] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -66,10 +67,7 @@ export default function PartnerGenerate() {
     navigate('/');
   };
 
-  const totalCost = selectedBureaus.reduce((sum, id) => {
-    const bureau = bureauOptions.find(b => b.id === id);
-    return sum + (bureau?.price || 0);
-  }, 0);
+  const totalCost = calculatePartnerTotal(selectedBureaus);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -130,7 +128,7 @@ export default function PartnerGenerate() {
           type: 'report_generation',
           status: 'success',
           payment_method: 'wallet',
-          description: `Report for ${formData.fullName}`,
+          description: `Report for ${formData.fullName} - Bureaus: ${selectedBureaus.join(', ')}`,
         });
 
       // Simulate score generation
@@ -164,7 +162,7 @@ export default function PartnerGenerate() {
     }
   };
 
-  if (loading || isLoading) {
+  if (loading || isLoading || pricingLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -226,55 +224,69 @@ export default function PartnerGenerate() {
             <Card className="mb-6">
               <CardHeader>
                 <CardTitle>Select Bureaus</CardTitle>
-                <CardDescription>Choose which credit bureaus to fetch</CardDescription>
+                <CardDescription>Choose which credit bureaus to fetch (Partner pricing applies)</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 gap-4">
-                  {bureauOptions.map((bureau) => (
-                    <div
-                      key={bureau.id}
-                      className={`flex items-center justify-between p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                        selectedBureaus.includes(bureau.id)
-                          ? 'border-primary bg-primary/5'
-                          : 'border-border hover:border-primary/50'
-                      }`}
-                      onClick={() => {
-                        setSelectedBureaus(prev =>
-                          prev.includes(bureau.id)
-                            ? prev.filter(id => id !== bureau.id)
-                            : [...prev, bureau.id]
-                        );
-                      }}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
+                  {bureauOptions.map((bureau) => {
+                    const price = getPartnerPrice(bureau.id);
+                    return (
+                      <div
+                        key={bureau.id}
+                        className={`flex items-center justify-between p-4 rounded-lg border-2 cursor-pointer transition-all ${
                           selectedBureaus.includes(bureau.id)
-                            ? 'bg-primary border-primary'
-                            : 'border-muted-foreground'
-                        }`}>
-                          {selectedBureaus.includes(bureau.id) && (
-                            <svg className="w-3 h-3 text-primary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                            </svg>
-                          )}
+                            ? 'border-primary bg-primary/5'
+                            : 'border-border hover:border-primary/50'
+                        }`}
+                        onClick={() => {
+                          setSelectedBureaus(prev =>
+                            prev.includes(bureau.id)
+                              ? prev.filter(id => id !== bureau.id)
+                              : [...prev, bureau.id]
+                          );
+                        }}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
+                            selectedBureaus.includes(bureau.id)
+                              ? 'bg-primary border-primary'
+                              : 'border-muted-foreground'
+                          }`}>
+                            {selectedBureaus.includes(bureau.id) && (
+                              <svg className="w-3 h-3 text-primary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                              </svg>
+                            )}
+                          </div>
+                          <span className="font-medium">{bureau.label}</span>
                         </div>
-                        <span className="font-medium">{bureau.label}</span>
+                        <span className="text-sm text-muted-foreground">₹{price}</span>
                       </div>
-                      <span className="text-sm text-muted-foreground">₹{bureau.price}</span>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </CardContent>
             </Card>
 
             <Card>
               <CardContent className="pt-6">
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center justify-between mb-2">
                   <span className="text-muted-foreground">Selected Bureaus</span>
                   <span className="font-medium">{selectedBureaus.length}</span>
                 </div>
-                <div className="flex items-center justify-between mb-4">
-                  <span className="text-muted-foreground">Total Cost</span>
+                <div className="space-y-1 text-sm mb-4">
+                  {selectedBureaus.map(id => {
+                    const bureau = bureauOptions.find(b => b.id === id);
+                    return (
+                      <div key={id} className="flex justify-between text-muted-foreground">
+                        <span>{bureau?.label}</span>
+                        <span>₹{getPartnerPrice(id)}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="flex items-center justify-between mb-4 border-t pt-3">
+                  <span className="font-semibold">Total Cost</span>
                   <span className="text-2xl font-bold text-foreground">₹{totalCost}</span>
                 </div>
                 <div className="flex items-center justify-between mb-6 text-sm">

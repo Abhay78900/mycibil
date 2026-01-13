@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import Header from '@/components/layout/Header';
 import BureauCard from '@/components/credit/BureauCard';
 import { useAuth } from '@/contexts/AuthContext';
+import { useBureauPricing } from '@/hooks/useBureauPricing';
 import { supabase } from '@/integrations/supabase/client';
 import { ArrowRight, Loader2, Check, CreditCard } from 'lucide-react';
 import { toast } from 'sonner';
@@ -26,16 +27,10 @@ const bureauOptions = [
   { code: 'crif' as const, name: 'CRIF High Mark' },
 ];
 
-interface PricingPlan {
-  id: string;
-  name: string;
-  bureaus: string[];
-  price: number;
-}
-
 export default function CheckScore() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const { pricing, loading: pricingLoading, getUserPrice, calculateUserTotal } = useBureauPricing();
   
   const [step, setStep] = useState(1);
   const [fullName, setFullName] = useState('');
@@ -44,23 +39,12 @@ export default function CheckScore() {
   const [selectedBureaus, setSelectedBureaus] = useState<string[]>(['cibil', 'experian', 'equifax', 'crif']);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [plans, setPlans] = useState<PricingPlan[]>([]);
 
   useEffect(() => {
     if (!authLoading && !user) {
       navigate('/auth');
     }
-    fetchPlans();
   }, [user, authLoading, navigate]);
-
-  const fetchPlans = async () => {
-    const { data } = await supabase
-      .from('pricing_plans')
-      .select('*')
-      .eq('is_active', true)
-      .order('price', { ascending: true });
-    if (data) setPlans(data);
-  };
 
   const toggleBureau = (code: string) => {
     setSelectedBureaus(prev => 
@@ -68,12 +52,6 @@ export default function CheckScore() {
         ? prev.filter(b => b !== code)
         : [...prev, code]
     );
-  };
-
-  const getPrice = () => {
-    const count = selectedBureaus.length;
-    const plan = plans.find(p => p.bureaus.length === count);
-    return plan?.price || (count === 1 ? 99 : count === 2 ? 179 : count === 3 ? 249 : 299);
   };
 
   const validateStep1 = () => {
@@ -109,6 +87,7 @@ export default function CheckScore() {
 
   const handleSubmit = async () => {
     setIsLoading(true);
+    const totalPrice = calculateUserTotal(selectedBureaus);
     
     try {
       // Create the credit report
@@ -121,7 +100,7 @@ export default function CheckScore() {
           date_of_birth: dateOfBirth,
           selected_bureaus: selectedBureaus,
           report_status: 'locked',
-          amount_paid: getPrice(),
+          amount_paid: totalPrice,
         })
         .select()
         .single();
@@ -134,10 +113,10 @@ export default function CheckScore() {
         .insert({
           user_id: user?.id,
           report_id: report.id,
-          amount: getPrice(),
+          amount: totalPrice,
           type: 'report_purchase',
           status: 'pending',
-          description: `Credit report for ${selectedBureaus.length} bureau(s)`,
+          description: `Credit report for ${selectedBureaus.length} bureau(s): ${selectedBureaus.join(', ')}`,
         });
 
       toast.success('Report request created!');
@@ -150,7 +129,7 @@ export default function CheckScore() {
     }
   };
 
-  if (authLoading) {
+  if (authLoading || pricingLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-accent" />
@@ -261,25 +240,40 @@ export default function CheckScore() {
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="grid sm:grid-cols-2 gap-4">
-                  {bureauOptions.map((bureau) => (
-                    <BureauCard
-                      key={bureau.code}
-                      name={bureau.name}
-                      code={bureau.code}
-                      isSelected={selectedBureaus.includes(bureau.code)}
-                      onClick={() => toggleBureau(bureau.code)}
-                    />
-                  ))}
+                  {bureauOptions.map((bureau) => {
+                    const price = getUserPrice(bureau.code);
+                    return (
+                      <BureauCard
+                        key={bureau.code}
+                        name={bureau.name}
+                        code={bureau.code}
+                        price={price}
+                        isSelected={selectedBureaus.includes(bureau.code)}
+                        onClick={() => toggleBureau(bureau.code)}
+                      />
+                    );
+                  })}
                 </div>
 
                 <div className="border-t border-border pt-6">
-                  <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center justify-between mb-2">
                     <span className="text-muted-foreground">Selected Bureaus</span>
                     <span className="font-medium">{selectedBureaus.length} of 4</span>
                   </div>
-                  <div className="flex items-center justify-between text-lg">
+                  <div className="space-y-1 text-sm mb-4">
+                    {selectedBureaus.map(code => {
+                      const bureau = bureauOptions.find(b => b.code === code);
+                      return (
+                        <div key={code} className="flex justify-between text-muted-foreground">
+                          <span>{bureau?.name}</span>
+                          <span>₹{getUserPrice(code)}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="flex items-center justify-between text-lg border-t pt-3">
                     <span className="font-semibold">Total Price</span>
-                    <span className="text-2xl font-bold text-accent">₹{getPrice()}</span>
+                    <span className="text-2xl font-bold text-accent">₹{calculateUserTotal(selectedBureaus)}</span>
                   </div>
                 </div>
 
