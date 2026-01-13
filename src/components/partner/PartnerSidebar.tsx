@@ -5,12 +5,13 @@ import {
   FileText, 
   Wallet,
   LogOut,
-  CreditCard,
   Plus,
-  Building2
+  Building2,
+  FileCheck
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { usePartnerWalletMode } from '@/hooks/usePartnerWalletMode';
 
 interface PartnerSidebarProps {
   partner: any;
@@ -27,6 +28,10 @@ const menuItems = [
 
 export default function PartnerSidebar({ partner, onLogout }: PartnerSidebarProps) {
   const location = useLocation();
+  const { isReportCountMode, calculateReportsFromAmount, loading: walletModeLoading } = usePartnerWalletMode();
+  
+  const walletBalance = Number(partner?.wallet_balance || 0);
+  const effectiveReportCount = calculateReportsFromAmount(walletBalance);
 
   return (
     <aside className="w-64 bg-card border-r border-border min-h-screen flex flex-col">
@@ -70,8 +75,27 @@ export default function PartnerSidebar({ partner, onLogout }: PartnerSidebarProp
 
       <div className="p-4 border-t border-border">
         <div className="mb-4 p-3 bg-accent rounded-lg">
-          <p className="text-xs text-muted-foreground">Wallet Balance</p>
-          <p className="text-xl font-bold text-foreground">₹{Number(partner?.wallet_balance || 0).toLocaleString()}</p>
+          {!walletModeLoading && (
+            <>
+              {isReportCountMode ? (
+                <>
+                  <div className="flex items-center gap-2 mb-1">
+                    <FileCheck className="w-4 h-4 text-muted-foreground" />
+                    <p className="text-xs text-muted-foreground">Reports Remaining</p>
+                  </div>
+                  <p className="text-xl font-bold text-foreground">{effectiveReportCount}</p>
+                </>
+              ) : (
+                <>
+                  <div className="flex items-center gap-2 mb-1">
+                    <Wallet className="w-4 h-4 text-muted-foreground" />
+                    <p className="text-xs text-muted-foreground">Wallet Balance</p>
+                  </div>
+                  <p className="text-xl font-bold text-foreground">₹{walletBalance.toLocaleString()}</p>
+                </>
+              )}
+            </>
+          )}
         </div>
         <Button 
           variant="ghost" 
