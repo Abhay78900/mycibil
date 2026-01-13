@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { usePartnerWalletMode } from '@/hooks/usePartnerWalletMode';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,7 +20,8 @@ import {
   ArrowDownLeft, 
   Building2,
   FileText,
-  History
+  History,
+  Calculator
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -29,6 +31,7 @@ interface Partner {
   name: string;
   franchise_id: string;
   wallet_balance: number;
+  report_count: number;
 }
 
 interface Transaction {
@@ -43,6 +46,7 @@ interface Transaction {
 }
 
 export default function PartnerWalletManagement() {
+  const { isReportCountMode, reportUnitPrice, calculateReportsFromAmount, calculateRemainderAmount, loading: walletModeLoading } = usePartnerWalletMode();
   const [partners, setPartners] = useState<Partner[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [selectedPartner, setSelectedPartner] = useState<Partner | null>(null);
@@ -55,8 +59,10 @@ export default function PartnerWalletManagement() {
   const [filterType, setFilterType] = useState<string>('all');
 
   useEffect(() => {
-    loadData();
-  }, []);
+    if (!walletModeLoading) {
+      loadData();
+    }
+  }, [walletModeLoading]);
 
   useEffect(() => {
     if (selectedPartner) {
@@ -68,7 +74,7 @@ export default function PartnerWalletManagement() {
     try {
       const { data } = await supabase
         .from('partners')
-        .select('id, name, franchise_id, wallet_balance')
+        .select('id, name, franchise_id, wallet_balance, report_count')
         .order('name');
       
       setPartners(data || []);
@@ -205,13 +211,17 @@ export default function PartnerWalletManagement() {
     return true;
   });
 
-  if (isLoading) {
+  if (isLoading || walletModeLoading) {
     return (
       <div className="flex items-center justify-center py-12">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
+
+  const getReportCount = (partner: Partner) => calculateReportsFromAmount(partner.wallet_balance);
+  const getRemainderAmount = (partner: Partner) => calculateRemainderAmount(partner.wallet_balance);
+  const reportsFromNewAmount = amount ? calculateReportsFromAmount(Number(amount)) : 0;
 
   return (
     <div className="space-y-6">
@@ -249,13 +259,27 @@ export default function PartnerWalletManagement() {
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
                   <Wallet className="w-4 h-4" />
-                  Current Balance
+                  Wallet Balance
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-3xl font-bold text-primary">
                   ₹{Number(selectedPartner.wallet_balance).toLocaleString()}
                 </p>
+                {isReportCountMode && (
+                  <div className="mt-2 p-2 bg-background/50 rounded-lg">
+                    <div className="flex items-center gap-2 text-sm">
+                      <Calculator className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-muted-foreground">Converts to:</span>
+                      <span className="font-bold text-foreground">{getReportCount(selectedPartner)} reports</span>
+                    </div>
+                    {getRemainderAmount(selectedPartner) > 0 && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        (₹{getRemainderAmount(selectedPartner)} remainder - internal only)
+                      </p>
+                    )}
+                  </div>
+                )}
                 <p className="text-sm text-muted-foreground mt-1">
                   {selectedPartner.name} ({selectedPartner.franchise_id})
                 </p>
@@ -402,15 +426,29 @@ export default function PartnerWalletManagement() {
             </div>
 
             {amount && (
-              <div className="bg-muted p-3 rounded-lg">
-                <p className="text-sm text-muted-foreground">New Balance After {dialogType === 'credit' ? 'Credit' : 'Debit'}</p>
-                <p className="text-xl font-bold">
-                  ₹{(
-                    dialogType === 'credit' 
-                      ? (selectedPartner?.wallet_balance || 0) + Number(amount)
-                      : (selectedPartner?.wallet_balance || 0) - Number(amount)
-                  ).toLocaleString()}
-                </p>
+              <div className="bg-muted p-3 rounded-lg space-y-2">
+                <div>
+                  <p className="text-sm text-muted-foreground">New Balance After {dialogType === 'credit' ? 'Credit' : 'Debit'}</p>
+                  <p className="text-xl font-bold">
+                    ₹{(
+                      dialogType === 'credit' 
+                        ? (selectedPartner?.wallet_balance || 0) + Number(amount)
+                        : (selectedPartner?.wallet_balance || 0) - Number(amount)
+                    ).toLocaleString()}
+                  </p>
+                </div>
+                {isReportCountMode && (
+                  <div className="pt-2 border-t border-border">
+                    <p className="text-sm text-muted-foreground">Report Count Impact</p>
+                    <p className="text-sm">
+                      <span className="text-muted-foreground">This amount adds </span>
+                      <span className="font-bold text-primary">{reportsFromNewAmount} report(s)</span>
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      (₹{reportUnitPrice} = 1 report)
+                    </p>
+                  </div>
+                )}
               </div>
             )}
           </div>

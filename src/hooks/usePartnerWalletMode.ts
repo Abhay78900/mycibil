@@ -58,14 +58,26 @@ export function usePartnerWalletMode() {
   const isReportCountMode = settings.enabled;
   const reportUnitPrice = settings.report_unit_price;
 
-  // Calculate reports from amount
+  // Calculate reports from amount (floor value only)
   const calculateReportsFromAmount = (amount: number): number => {
     return Math.floor(amount / reportUnitPrice);
+  };
+
+  // Calculate remainder amount after conversion
+  const calculateRemainderAmount = (amount: number): number => {
+    return amount % reportUnitPrice;
   };
 
   // Calculate amount from reports
   const calculateAmountFromReports = (reports: number): number => {
     return reports * reportUnitPrice;
+  };
+
+  // Get effective report count from wallet balance (for automatic conversion)
+  const getEffectiveReportCount = (walletBalance: number, storedReportCount: number): number => {
+    if (!isReportCountMode) return storedReportCount;
+    // In report count mode, derive reports from wallet balance
+    return calculateReportsFromAmount(walletBalance);
   };
 
   return {
@@ -75,7 +87,9 @@ export function usePartnerWalletMode() {
     reportUnitPrice,
     updateSettings,
     calculateReportsFromAmount,
+    calculateRemainderAmount,
     calculateAmountFromReports,
+    getEffectiveReportCount,
     refetch: fetchSettings,
   };
 }

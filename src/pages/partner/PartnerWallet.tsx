@@ -18,7 +18,7 @@ import { format } from 'date-fns';
 export default function PartnerWallet() {
   const { user, userRole, signOut, loading } = useAuth();
   const navigate = useNavigate();
-  const { isReportCountMode, reportUnitPrice, calculateReportsFromAmount, loading: walletModeLoading } = usePartnerWalletMode();
+  const { isReportCountMode, reportUnitPrice, calculateReportsFromAmount, getEffectiveReportCount, loading: walletModeLoading } = usePartnerWalletMode();
   const [partner, setPartner] = useState<any>(null);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -78,63 +78,42 @@ export default function PartnerWallet() {
 
     setIsAdding(true);
     try {
+      // Always add to wallet_balance - the report count is derived automatically
+      const newBalance = Number(partner.wallet_balance || 0) + amount;
+      
+      await supabase
+        .from('partners')
+        .update({ 
+          wallet_balance: newBalance,
+          wallet_mode: isReportCountMode ? 'report_count' : 'amount'
+        })
+        .eq('id', partner.id);
+
+      const reportsAdded = isReportCountMode ? calculateReportsFromAmount(amount) : 0;
+
+      // Create transaction with report count info
+      await supabase
+        .from('transactions')
+        .insert({
+          user_id: user?.id,
+          partner_id: partner.id,
+          amount,
+          type: 'wallet_topup',
+          status: 'success',
+          payment_method: 'upi',
+          description: isReportCountMode 
+            ? `Added ₹${amount} (≈ ${reportsAdded} report${reportsAdded !== 1 ? 's' : ''})` 
+            : 'Wallet top-up',
+          metadata: isReportCountMode 
+            ? { reports_added: reportsAdded, wallet_mode: 'report_count', amount_added: amount }
+            : { wallet_mode: 'amount' }
+        });
+
+      setPartner({ ...partner, wallet_balance: newBalance });
+      
       if (isReportCountMode) {
-        // Report count mode: add reports
-        const reportsToAdd = calculateReportsFromAmount(amount);
-        if (reportsToAdd < 1) {
-          toast.error(`Minimum amount for 1 report is ₹${reportUnitPrice}`);
-          setIsAdding(false);
-          return;
-        }
-
-        await supabase
-          .from('partners')
-          .update({ 
-            report_count: Number(partner.report_count || 0) + reportsToAdd,
-            wallet_mode: 'report_count'
-          })
-          .eq('id', partner.id);
-
-        // Create transaction with report count info
-        await supabase
-          .from('transactions')
-          .insert({
-            user_id: user?.id,
-            partner_id: partner.id,
-            amount,
-            type: 'wallet_topup',
-            status: 'success',
-            payment_method: 'upi',
-            description: `Added ${reportsToAdd} report(s) (₹${amount})`,
-            metadata: { reports_added: reportsToAdd, wallet_mode: 'report_count' }
-          });
-
-        setPartner({ ...partner, report_count: Number(partner.report_count || 0) + reportsToAdd });
-        toast.success(`${reportsToAdd} report(s) added to wallet`);
+        toast.success(`₹${amount} added (≈ ${reportsAdded} report${reportsAdded !== 1 ? 's' : ''})`);
       } else {
-        // Amount mode: add currency
-        await supabase
-          .from('partners')
-          .update({ 
-            wallet_balance: Number(partner.wallet_balance) + amount,
-            wallet_mode: 'amount'
-          })
-          .eq('id', partner.id);
-
-        await supabase
-          .from('transactions')
-          .insert({
-            user_id: user?.id,
-            partner_id: partner.id,
-            amount,
-            type: 'wallet_topup',
-            status: 'success',
-            payment_method: 'upi',
-            description: 'Wallet top-up',
-            metadata: { wallet_mode: 'amount' }
-          });
-
-        setPartner({ ...partner, wallet_balance: Number(partner.wallet_balance) + amount });
         toast.success(`₹${amount} added to wallet`);
       }
 
@@ -147,8 +126,8 @@ export default function PartnerWallet() {
       setIsAdding(false);
     }
   };
-
   const reportsFromAmount = addAmount ? calculateReportsFromAmount(Number(addAmount)) : 0;
+  const effectiveReportCount = getEffectiveReportCount(Number(partner?.wallet_balance || 0), Number(partner?.report_count || 0));
 
   if (loading || isLoading || walletModeLoading) {
     return (
@@ -178,7 +157,7 @@ export default function PartnerWallet() {
                   {isReportCountMode ? (
                     <>
                       <p className="text-secondary-foreground/80 mb-2">Reports Remaining</p>
-                      <p className="text-5xl font-bold">{Number(partner?.report_count || 0)}</p>
+                      <p className="text-5xl font-bold">{effectiveReportCount}</p>
                       <p className="text-sm mt-2 text-secondary-foreground/70 flex items-center gap-2">
                         <FileText className="w-4 h-4" />
                         1 report used per generation
