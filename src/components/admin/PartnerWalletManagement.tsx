@@ -226,7 +226,7 @@ export default function PartnerWalletManagement() {
   return (
     <div className="space-y-6">
       {/* Partner Selection and Balance Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="md:col-span-1">
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Select Partner</CardTitle>
@@ -255,32 +255,54 @@ export default function PartnerWalletManagement() {
 
         {selectedPartner && (
           <>
-            <Card className="bg-gradient-to-br from-primary/10 to-primary/5">
+            <Card className="bg-gradient-to-br from-primary/10 to-primary/5 md:col-span-2">
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
                   <Wallet className="w-4 h-4" />
-                  Wallet Balance
+                  Wallet Overview
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-3xl font-bold text-primary">
-                  ₹{Number(selectedPartner.wallet_balance).toLocaleString()}
-                </p>
-                {isReportCountMode && (
-                  <div className="mt-2 p-2 bg-background/50 rounded-lg">
-                    <div className="flex items-center gap-2 text-sm">
-                      <Calculator className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-muted-foreground">Converts to:</span>
-                      <span className="font-bold text-foreground">{getReportCount(selectedPartner)} reports</span>
-                    </div>
-                    {getRemainderAmount(selectedPartner) > 0 && (
-                      <p className="text-xs text-muted-foreground mt-1">
-                        (₹{getRemainderAmount(selectedPartner)} remainder - internal only)
-                      </p>
-                    )}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Wallet Amount */}
+                  <div className="p-3 bg-background/50 rounded-lg">
+                    <p className="text-xs text-muted-foreground mb-1">Wallet Amount</p>
+                    <p className="text-2xl font-bold text-primary">
+                      ₹{Number(selectedPartner.wallet_balance).toLocaleString()}
+                    </p>
                   </div>
-                )}
-                <p className="text-sm text-muted-foreground mt-1">
+                  
+                  {isReportCountMode && (
+                    <>
+                      {/* Converted Reports */}
+                      <div className="p-3 bg-green-500/10 rounded-lg border border-green-500/20">
+                        <div className="flex items-center gap-1 mb-1">
+                          <Calculator className="w-3 h-3 text-green-600" />
+                          <p className="text-xs text-green-700">Converted Reports</p>
+                        </div>
+                        <p className="text-2xl font-bold text-green-600">
+                          {getReportCount(selectedPartner)}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          @ ₹{reportUnitPrice}/report
+                        </p>
+                      </div>
+                      
+                      {/* Remaining Amount */}
+                      <div className="p-3 bg-amber-500/10 rounded-lg border border-amber-500/20">
+                        <p className="text-xs text-amber-700 mb-1">Remaining Amount</p>
+                        <p className="text-2xl font-bold text-amber-600">
+                          ₹{getRemainderAmount(selectedPartner)}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          (Internal tracking only)
+                        </p>
+                      </div>
+                    </>
+                  )}
+                </div>
+                
+                <p className="text-sm text-muted-foreground mt-3">
                   {selectedPartner.name} ({selectedPartner.franchise_id})
                 </p>
               </CardContent>
