@@ -6,6 +6,7 @@ interface BureauCardProps {
   name: string;
   code: 'cibil' | 'experian' | 'equifax' | 'crif';
   score?: number;
+  price?: number;
   isSelected?: boolean;
   isLocked?: boolean;
   onClick?: () => void;
@@ -42,7 +43,7 @@ const bureauConfig = {
   }
 };
 
-export default function BureauCard({ name, code, score, isSelected, isLocked, onClick }: BureauCardProps) {
+export default function BureauCard({ name, code, score, price, isSelected, isLocked, onClick }: BureauCardProps) {
   const config = bureauConfig[code];
 
   return (
@@ -69,6 +70,9 @@ export default function BureauCard({ name, code, score, isSelected, isLocked, on
               <p className="text-2xl font-bold" style={{ color: `hsl(var(--${config.color}))` }}>
                 {score}
               </p>
+            )}
+            {price !== undefined && !score && (
+              <p className="text-sm text-muted-foreground">₹{price}</p>
             )}
           </div>
         </div>

@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      bureau_pricing: {
+        Row: {
+          bureau_code: string
+          bureau_name: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          partner_price: number
+          updated_at: string | null
+          user_price: number
+        }
+        Insert: {
+          bureau_code: string
+          bureau_name: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          partner_price?: number
+          updated_at?: string | null
+          user_price?: number
+        }
+        Update: {
+          bureau_code?: string
+          bureau_name?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          partner_price?: number
+          updated_at?: string | null
+          user_price?: number
+        }
+        Relationships: []
+      }
       credit_reports: {
         Row: {
           active_loans: Json | null
