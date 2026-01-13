@@ -11,14 +11,14 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
-import { Wallet, Plus, Loader2, ArrowUpRight, ArrowDownLeft, FileText } from 'lucide-react';
+import { Wallet, Plus, Loader2, ArrowUpRight, ArrowDownLeft, FileText, Calculator } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
 export default function PartnerWallet() {
   const { user, userRole, signOut, loading } = useAuth();
   const navigate = useNavigate();
-  const { isReportCountMode, reportUnitPrice, calculateReportsFromAmount, getEffectiveReportCount, loading: walletModeLoading } = usePartnerWalletMode();
+  const { isReportCountMode, reportUnitPrice, calculateReportsFromAmount, calculateRemainderAmount, getEffectiveReportCount, loading: walletModeLoading } = usePartnerWalletMode();
   const [partner, setPartner] = useState<any>(null);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -151,27 +151,13 @@ export default function PartnerWallet() {
           </div>
 
           <Card className="mb-8 overflow-hidden">
-            <div className="bg-gradient-to-r from-secondary to-secondary/80 p-8 text-secondary-foreground">
-              <div className="flex items-center justify-between">
+            <div className="bg-gradient-to-r from-secondary to-secondary/80 p-6 text-secondary-foreground">
+              <div className="flex items-center justify-between mb-6">
                 <div>
-                  {isReportCountMode ? (
-                    <>
-                      <p className="text-secondary-foreground/80 mb-2">Reports Remaining</p>
-                      <p className="text-5xl font-bold">{effectiveReportCount}</p>
-                      <p className="text-sm mt-2 text-secondary-foreground/70 flex items-center gap-2">
-                        <FileText className="w-4 h-4" />
-                        1 report used per generation
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <p className="text-secondary-foreground/80 mb-2">Available Balance</p>
-                      <p className="text-5xl font-bold">₹{Number(partner?.wallet_balance || 0).toLocaleString()}</p>
-                      <p className="text-sm mt-2 text-secondary-foreground/70">
-                        Commission Rate: {partner?.commission_rate}%
-                      </p>
-                    </>
-                  )}
+                  <p className="text-secondary-foreground/80 mb-1">Wallet Overview</p>
+                  <p className="text-sm text-secondary-foreground/60">
+                    {isReportCountMode ? 'Report Count Mode Active' : 'Amount Mode Active'}
+                  </p>
                 </div>
                 <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                   <DialogTrigger asChild>
@@ -225,6 +211,57 @@ export default function PartnerWallet() {
                     </DialogFooter>
                   </DialogContent>
                 </Dialog>
+              </div>
+              
+              {/* Wallet Stats Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Wallet Amount */}
+                <div className="p-4 bg-background/10 rounded-lg backdrop-blur-sm">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Wallet className="w-4 h-4 text-secondary-foreground/70" />
+                    <p className="text-sm text-secondary-foreground/70">Wallet Amount</p>
+                  </div>
+                  <p className="text-3xl font-bold">
+                    ₹{Number(partner?.wallet_balance || 0).toLocaleString()}
+                  </p>
+                </div>
+                
+                {isReportCountMode ? (
+                  <>
+                    {/* Converted Reports */}
+                    <div className="p-4 bg-green-500/20 rounded-lg border border-green-400/30">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Calculator className="w-4 h-4 text-green-300" />
+                        <p className="text-sm text-green-200">Converted Reports</p>
+                      </div>
+                      <p className="text-3xl font-bold text-green-100">
+                        {effectiveReportCount}
+                      </p>
+                      <p className="text-xs text-green-300/70 mt-1">
+                        @ ₹{reportUnitPrice}/report
+                      </p>
+                    </div>
+                    
+                    {/* Remaining Amount */}
+                    <div className="p-4 bg-amber-500/20 rounded-lg border border-amber-400/30">
+                      <div className="flex items-center gap-2 mb-2">
+                        <FileText className="w-4 h-4 text-amber-300" />
+                        <p className="text-sm text-amber-200">Remaining Amount</p>
+                      </div>
+                      <p className="text-3xl font-bold text-amber-100">
+                        ₹{calculateRemainderAmount(Number(partner?.wallet_balance || 0))}
+                      </p>
+                      <p className="text-xs text-amber-300/70 mt-1">
+                        (Carried forward)
+                      </p>
+                    </div>
+                  </>
+                ) : (
+                  <div className="p-4 bg-background/10 rounded-lg backdrop-blur-sm md:col-span-2">
+                    <p className="text-sm text-secondary-foreground/70 mb-2">Commission Rate</p>
+                    <p className="text-3xl font-bold">{partner?.commission_rate}%</p>
+                  </div>
+                )}
               </div>
             </div>
           </Card>
