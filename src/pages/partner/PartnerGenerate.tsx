@@ -69,8 +69,9 @@ export default function PartnerGenerate() {
     navigate('/');
   };
 
-  // In report count mode, cost is always 1 report regardless of bureaus selected
-  const totalCost = isReportCountMode ? 1 : calculatePartnerTotal(selectedBureaus);
+  // In report count mode, each bureau = 1 report deduction
+  const bureauCount = selectedBureaus.length;
+  const totalCost = isReportCountMode ? bureauCount : calculatePartnerTotal(selectedBureaus);
   const walletBalance = Number(partner?.wallet_balance || 0);
   const effectiveReportCount = getEffectiveReportCount(walletBalance, Number(partner?.report_count || 0));
   const currentBalance = isReportCountMode ? effectiveReportCount : walletBalance;
@@ -117,10 +118,10 @@ export default function PartnerGenerate() {
 
       if (reportError) throw reportError;
 
-      // Deduct from wallet - always deduct from wallet_balance
+      // Deduct from wallet - amount based on number of bureaus selected
       if (isReportCountMode) {
-        // Deduct amount equivalent to 1 report
-        const deductionAmount = reportUnitPrice;
+        // Deduct amount equivalent to X reports (1 report per bureau)
+        const deductionAmount = reportUnitPrice * bureauCount;
         await supabase
           .from('partners')
           .update({ 
@@ -151,8 +152,8 @@ export default function PartnerGenerate() {
           payment_method: 'wallet',
           description: `Report for ${formData.fullName} - Bureaus: ${selectedBureaus.join(', ')}`,
           metadata: isReportCountMode 
-            ? { wallet_mode: 'report_count', reports_deducted: 1 }
-            : { wallet_mode: 'amount' }
+            ? { wallet_mode: 'report_count', reports_deducted: bureauCount, bureaus: selectedBureaus }
+            : { wallet_mode: 'amount', bureaus: selectedBureaus }
         });
 
       // Simulate score generation
@@ -248,9 +249,9 @@ export default function PartnerGenerate() {
             <Card className="mb-6">
               <CardHeader>
                 <CardTitle>Select Bureaus</CardTitle>
-                <CardDescription>
+              <CardDescription>
                   {isReportCountMode 
-                    ? 'Choose bureaus to include (1 report deducted regardless of selection)'
+                    ? 'Choose bureaus to include (1 report per bureau)'
                     : 'Choose which credit bureaus to fetch (Partner pricing applies)'
                   }
                 </CardDescription>
@@ -322,10 +323,10 @@ export default function PartnerGenerate() {
 
                 <div className="flex items-center justify-between mb-4 border-t pt-3">
                   <span className="font-semibold">
-                    {isReportCountMode ? 'Cost' : 'Total Cost'}
+                    {isReportCountMode ? 'Reports Required' : 'Total Cost'}
                   </span>
                   <span className="text-2xl font-bold text-foreground">
-                    {isReportCountMode ? '1 Report' : `₹${totalCost}`}
+                    {isReportCountMode ? `${bureauCount} Report${bureauCount > 1 ? 's' : ''}` : `₹${totalCost}`}
                   </span>
                 </div>
 
