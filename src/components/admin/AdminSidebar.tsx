@@ -7,7 +7,8 @@ import {
   Settings, 
   LogOut,
   CreditCard,
-  FileText
+  FileText,
+  UserPlus
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -20,6 +21,7 @@ const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/admin' },
   { icon: Users, label: 'Users', path: '/admin/users' },
   { icon: Building2, label: 'Partners', path: '/admin/partners' },
+  { icon: UserPlus, label: 'Partner Leads', path: '/admin/partner-leads' },
   { icon: FileText, label: 'Reports', path: '/admin/reports' },
   { icon: IndianRupee, label: 'Revenue', path: '/admin/revenue' },
   { icon: Settings, label: 'Settings', path: '/admin/settings' },

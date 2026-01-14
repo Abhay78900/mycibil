@@ -145,6 +145,113 @@ export type Database = {
           },
         ]
       }
+      lead_activity_logs: {
+        Row: {
+          action: string
+          admin_id: string | null
+          created_at: string
+          id: string
+          lead_id: string
+          new_status: Database["public"]["Enums"]["lead_status"] | null
+          notes: string | null
+          old_status: Database["public"]["Enums"]["lead_status"] | null
+        }
+        Insert: {
+          action: string
+          admin_id?: string | null
+          created_at?: string
+          id?: string
+          lead_id: string
+          new_status?: Database["public"]["Enums"]["lead_status"] | null
+          notes?: string | null
+          old_status?: Database["public"]["Enums"]["lead_status"] | null
+        }
+        Update: {
+          action?: string
+          admin_id?: string | null
+          created_at?: string
+          id?: string
+          lead_id?: string
+          new_status?: Database["public"]["Enums"]["lead_status"] | null
+          notes?: string | null
+          old_status?: Database["public"]["Enums"]["lead_status"] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_activity_logs_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "partner_leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      partner_leads: {
+        Row: {
+          admin_notes: string | null
+          assigned_admin_id: string | null
+          business_name: string | null
+          city: string
+          consent_given: boolean
+          created_at: string
+          current_occupation: string
+          email: string
+          finance_experience: boolean
+          follow_up_date: string | null
+          full_name: string
+          id: string
+          interested_services: Database["public"]["Enums"]["interested_services"]
+          investment_capacity: Database["public"]["Enums"]["investment_capacity"]
+          message: string | null
+          mobile: string
+          state: string
+          status: Database["public"]["Enums"]["lead_status"]
+          updated_at: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          assigned_admin_id?: string | null
+          business_name?: string | null
+          city: string
+          consent_given?: boolean
+          created_at?: string
+          current_occupation: string
+          email: string
+          finance_experience?: boolean
+          follow_up_date?: string | null
+          full_name: string
+          id?: string
+          interested_services: Database["public"]["Enums"]["interested_services"]
+          investment_capacity: Database["public"]["Enums"]["investment_capacity"]
+          message?: string | null
+          mobile: string
+          state: string
+          status?: Database["public"]["Enums"]["lead_status"]
+          updated_at?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          assigned_admin_id?: string | null
+          business_name?: string | null
+          city?: string
+          consent_given?: boolean
+          created_at?: string
+          current_occupation?: string
+          email?: string
+          finance_experience?: boolean
+          follow_up_date?: string | null
+          full_name?: string
+          id?: string
+          interested_services?: Database["public"]["Enums"]["interested_services"]
+          investment_capacity?: Database["public"]["Enums"]["investment_capacity"]
+          message?: string | null
+          mobile?: string
+          state?: string
+          status?: Database["public"]["Enums"]["lead_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       partners: {
         Row: {
           commission_rate: number | null
@@ -370,6 +477,20 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "partner" | "user"
+      interested_services: "credit_score_check" | "loan" | "both"
+      investment_capacity:
+        | "below_50k"
+        | "50k_to_1lakh"
+        | "1lakh_to_5lakh"
+        | "above_5lakh"
+      lead_status:
+        | "new"
+        | "contacted"
+        | "interested"
+        | "follow_up_scheduled"
+        | "converted"
+        | "not_interested"
+        | "rejected"
       report_status: "locked" | "unlocked" | "processing" | "failed"
       transaction_status: "pending" | "success" | "failed" | "refunded"
     }
@@ -500,6 +621,22 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "partner", "user"],
+      interested_services: ["credit_score_check", "loan", "both"],
+      investment_capacity: [
+        "below_50k",
+        "50k_to_1lakh",
+        "1lakh_to_5lakh",
+        "above_5lakh",
+      ],
+      lead_status: [
+        "new",
+        "contacted",
+        "interested",
+        "follow_up_scheduled",
+        "converted",
+        "not_interested",
+        "rejected",
+      ],
       report_status: ["locked", "unlocked", "processing", "failed"],
       transaction_status: ["pending", "success", "failed", "refunded"],
     },
