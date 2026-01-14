@@ -16,9 +16,14 @@ import NotFound from "./pages/NotFound";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminPartners from "./pages/admin/AdminPartners";
+import AdminPartnerLeads from "./pages/admin/AdminPartnerLeads";
+import AdminPartnerLeadDetail from "./pages/admin/AdminPartnerLeadDetail";
 import AdminReports from "./pages/admin/AdminReports";
 import AdminRevenue from "./pages/admin/AdminRevenue";
 import AdminSettings from "./pages/admin/AdminSettings";
+
+// Public Pages
+import BecomePartner from "./pages/BecomePartner";
 
 // Partner Pages
 import PartnerDashboard from "./pages/partner/PartnerDashboard";
@@ -45,10 +50,15 @@ const App = () => (
             <Route path="/payment/:reportId" element={<Payment />} />
             <Route path="/report/:reportId" element={<CreditReport />} />
             
+            {/* Public Pages */}
+            <Route path="/become-partner" element={<BecomePartner />} />
+            
             {/* Admin Routes */}
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/admin/users" element={<AdminUsers />} />
             <Route path="/admin/partners" element={<AdminPartners />} />
+            <Route path="/admin/partner-leads" element={<AdminPartnerLeads />} />
+            <Route path="/admin/partner-leads/:id" element={<AdminPartnerLeadDetail />} />
             <Route path="/admin/reports" element={<AdminReports />} />
             <Route path="/admin/revenue" element={<AdminRevenue />} />
             <Route path="/admin/settings" element={<AdminSettings />} />

@@ -258,9 +258,14 @@ export default function Index() {
             </div>
             <span className="font-semibold">CreditCheck</span>
           </div>
-          <p className="text-sm text-muted-foreground">
-            © 2024 CreditCheck. All rights reserved.
-          </p>
+          <div className="flex items-center gap-6">
+            <Button variant="link" onClick={() => navigate('/become-partner')} className="text-muted-foreground hover:text-primary">
+              Become a Partner
+            </Button>
+            <p className="text-sm text-muted-foreground">
+              © 2024 CreditCheck. All rights reserved.
+            </p>
+          </div>
         </div>
       </footer>
     </div>
