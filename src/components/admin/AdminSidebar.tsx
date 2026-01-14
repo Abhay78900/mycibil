@@ -65,7 +65,7 @@ export default function AdminSidebar({ onLogout }: AdminSidebarProps) {
         })}
       </nav>
 
-      <div className="p-4 border-t border-border">
+      <div className="p-4 border-t border-border mt-auto">
         <Button 
           variant="ghost" 
           className="w-full justify-start gap-3 text-muted-foreground hover:text-destructive"
