@@ -9,15 +9,18 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Settings, IndianRupee, Loader2, Save, Users, Building2, Wallet, FileText } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Settings, IndianRupee, Loader2, Save, Users, Building2, Wallet, FileText, FlaskConical, Zap, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { BureauPricing } from '@/types/bureauPricing';
 import { usePartnerWalletMode } from '@/hooks/usePartnerWalletMode';
+import { useSandboxMode } from '@/hooks/useSandboxMode';
 
 export default function AdminSettings() {
   const { userRole, signOut, loading } = useAuth();
   const navigate = useNavigate();
   const { settings: walletSettings, loading: walletLoading, updateSettings: updateWalletSettings } = usePartnerWalletMode();
+  const { settings: sandboxSettings, loading: sandboxLoading, updateSettings: updateSandboxSettings } = useSandboxMode();
   
   const [bureauPricing, setBureauPricing] = useState<BureauPricing[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -28,6 +31,10 @@ export default function AdminSettings() {
   const [reportCountModeEnabled, setReportCountModeEnabled] = useState(false);
   const [reportUnitPrice, setReportUnitPrice] = useState(99);
   const [isSavingWalletSettings, setIsSavingWalletSettings] = useState(false);
+
+  // Sandbox mode settings
+  const [sandboxModeEnabled, setSandboxModeEnabled] = useState(true);
+  const [isSavingSandboxSettings, setIsSavingSandboxSettings] = useState(false);
 
   useEffect(() => {
     if (!loading && userRole !== 'admin') {
@@ -45,6 +52,12 @@ export default function AdminSettings() {
       setReportUnitPrice(walletSettings.report_unit_price);
     }
   }, [walletSettings, walletLoading]);
+
+  useEffect(() => {
+    if (!sandboxLoading) {
+      setSandboxModeEnabled(sandboxSettings.enabled);
+    }
+  }, [sandboxSettings, sandboxLoading]);
 
   const loadSettings = async () => {
     try {
@@ -165,7 +178,30 @@ export default function AdminSettings() {
            reportUnitPrice !== walletSettings.report_unit_price;
   };
 
-  if (loading || isLoading || walletLoading) {
+  const hasSandboxChanges = () => {
+    return sandboxModeEnabled !== sandboxSettings.enabled;
+  };
+
+  const handleSaveSandboxSettings = async () => {
+    setIsSavingSandboxSettings(true);
+    try {
+      const success = await updateSandboxSettings({
+        enabled: sandboxModeEnabled,
+      });
+
+      if (success) {
+        toast.success(sandboxModeEnabled 
+          ? 'Sandbox mode enabled - using mock data' 
+          : 'Production mode enabled - using real API calls');
+      } else {
+        toast.error('Failed to update sandbox settings');
+      }
+    } finally {
+      setIsSavingSandboxSettings(false);
+    }
+  };
+
+  if (loading || isLoading || walletLoading || sandboxLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -181,8 +217,112 @@ export default function AdminSettings() {
         <div className="max-w-5xl mx-auto">
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-foreground">System Settings</h1>
-            <p className="text-muted-foreground mt-1">Configure bureau pricing and partner wallet modes</p>
+            <p className="text-muted-foreground mt-1">Configure bureau pricing, wallet modes, and API settings</p>
           </div>
+
+          {/* Sandbox/Test Mode Settings */}
+          <Card className="mb-8">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${sandboxModeEnabled ? 'bg-warning/20' : 'bg-score-excellent/20'}`}>
+                    {sandboxModeEnabled ? (
+                      <FlaskConical className="w-6 h-6 text-warning" />
+                    ) : (
+                      <Zap className="w-6 h-6 text-score-excellent" />
+                    )}
+                  </div>
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      API Mode
+                      <Badge variant={sandboxModeEnabled ? "secondary" : "default"} className={sandboxModeEnabled ? "bg-warning/20 text-warning" : "bg-score-excellent/20 text-score-excellent"}>
+                        {sandboxModeEnabled ? 'Sandbox' : 'Production'}
+                      </Badge>
+                    </CardTitle>
+                    <CardDescription className="mt-1">
+                      Switch between mock data (sandbox) and real bureau API calls (production)
+                    </CardDescription>
+                  </div>
+                </div>
+                {hasSandboxChanges() && (
+                  <Button onClick={handleSaveSandboxSettings} disabled={isSavingSandboxSettings}>
+                    {isSavingSandboxSettings ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Save className="w-4 h-4 mr-2" />
+                    )}
+                    Save
+                  </Button>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Mode Toggle */}
+              <div className="flex items-center justify-between p-4 bg-accent/30 rounded-lg">
+                <div className="flex items-center gap-4">
+                  <div>
+                    <Label className="text-base font-semibold">Sandbox Mode</Label>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {sandboxModeEnabled 
+                        ? 'Currently using mock/test data - no real API calls are made'
+                        : 'Currently making real API calls to credit bureaus'}
+                    </p>
+                  </div>
+                </div>
+                <Switch
+                  checked={sandboxModeEnabled}
+                  onCheckedChange={setSandboxModeEnabled}
+                />
+              </div>
+
+              {/* Mode Explanation Cards */}
+              <div className="grid md:grid-cols-2 gap-4">
+                <Card className={`transition-all ${sandboxModeEnabled ? 'ring-2 ring-warning' : 'opacity-60'}`}>
+                  <CardContent className="pt-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <FlaskConical className="w-5 h-5 text-warning" />
+                      <h4 className="font-semibold">Sandbox Mode {sandboxModeEnabled && <span className="text-xs text-warning">(Active)</span>}</h4>
+                    </div>
+                    <ul className="text-sm text-muted-foreground space-y-1">
+                      <li>• Uses mock/simulated credit scores</li>
+                      <li>• No real bureau API calls</li>
+                      <li>• Perfect for testing & development</li>
+                      <li>• No cost per report</li>
+                    </ul>
+                  </CardContent>
+                </Card>
+
+                <Card className={`transition-all ${!sandboxModeEnabled ? 'ring-2 ring-score-excellent' : 'opacity-60'}`}>
+                  <CardContent className="pt-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Zap className="w-5 h-5 text-score-excellent" />
+                      <h4 className="font-semibold">Production Mode {!sandboxModeEnabled && <span className="text-xs text-score-excellent">(Active)</span>}</h4>
+                    </div>
+                    <ul className="text-sm text-muted-foreground space-y-1">
+                      <li>• Real bureau API integrations</li>
+                      <li>• Live credit scores from bureaus</li>
+                      <li>• Production-ready data</li>
+                      <li>• Requires API keys configured</li>
+                    </ul>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Warning when switching to production */}
+              {!sandboxModeEnabled && (
+                <div className="flex items-start gap-3 p-4 rounded-lg bg-warning/10 border border-warning/30">
+                  <AlertTriangle className="w-5 h-5 text-warning mt-0.5 shrink-0" />
+                  <div>
+                    <p className="font-medium text-warning">Production Mode Warning</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Ensure all bureau API keys (CIBIL, Experian, Equifax, CRIF) are configured before enabling production mode.
+                      Real API calls will incur costs per report.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Partner Wallet Mode Settings */}
           <Card className="mb-8">
