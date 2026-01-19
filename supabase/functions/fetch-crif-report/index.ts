@@ -351,56 +351,137 @@ function transformCrifToUnifiedReport(apiData: any, ctx: {
 
 function generateMockCrifData(fullName: string, panNumber: string, dateOfBirth?: string, gender?: string, score?: number) {
   const mockScore = score || Math.floor(Math.random() * (850 - 650 + 1)) + 650;
+  const today = new Date().toISOString().slice(0, 10);
   
+  // Return in UNIFIED format so the frontend can render it directly
   return {
     header: {
-      reportDate: new Date().toISOString().split('T')[0],
-      reportId: `CRIF-${Date.now()}`,
-      bureauName: 'CRIF High Mark'
+      bureau_name: 'CRIF High Mark',
+      control_number: `CRIF-${Date.now()}`,
+      report_date: today,
+      credit_score: mockScore
     },
-    personalInfo: {
-      name: fullName,
-      panNumber: panNumber,
-      dateOfBirth: dateOfBirth || 'Not Provided',
-      gender: gender || 'Not Provided'
+    personal_information: {
+      full_name: (fullName || 'Not Reported').toUpperCase(),
+      date_of_birth: dateOfBirth || '---',
+      gender: gender || 'Not Reported',
+      identifications: [
+        {
+          type: 'INCOME TAX ID NUMBER (PAN)',
+          number: panNumber || 'Not Reported',
+          issue_date: null,
+          expiration_date: null
+        }
+      ]
     },
-    scoreInfo: {
-      score: mockScore,
-      scoreRange: '300-900',
-      scoreDate: new Date().toISOString().split('T')[0]
+    contact_information: {
+      addresses: [
+        {
+          address: '123 MOCK STREET, SAMPLE CITY, STATE 123456',
+          category: 'Residence',
+          status: 'Current',
+          date_reported: today
+        }
+      ],
+      phone_numbers: [
+        { type: 'Mobile', number: '9876543210' }
+      ],
+      email_addresses: []
     },
-    accountSummary: {
-      totalAccounts: 5,
-      activeAccounts: 3,
-      closedAccounts: 2,
-      overdueAccounts: 0
-    },
+    employment_information: [
+      {
+        account_type: 'Personal Loan',
+        date_reported: today,
+        occupation: 'SALARIED',
+        income: 'Not Reported',
+        frequency: 'Monthly',
+        income_indicator: 'N'
+      }
+    ],
     accounts: [
       {
-        accountType: 'Personal Loan',
-        lender: 'HDFC Bank',
-        accountNumber: 'XXXX1234',
-        sanctionedAmount: 500000,
-        currentBalance: 250000,
-        status: 'Active',
-        paymentHistory: 'Regular'
+        member_name: 'HDFC BANK LTD',
+        account_type: 'Personal Loan',
+        ownership: 'Individual',
+        account_number: 'XXXX1234',
+        credit_limit: '-',
+        sanctioned_amount: '5,00,000',
+        current_balance: '2,50,000',
+        cash_limit: '-',
+        amount_overdue: '0',
+        rate_of_interest: '12.5',
+        repayment_tenure: '60',
+        emi_amount: '11,200',
+        payment_frequency: 'Monthly',
+        actual_payment_amount: '11,200',
+        dates: {
+          date_opened: '2022-03-15',
+          date_closed: null,
+          date_of_last_payment: today,
+          date_reported: today
+        },
+        payment_start_date: '2022-04-01',
+        payment_end_date: today,
+        payment_history: [],
+        collateral: {
+          value: '-',
+          type: '-',
+          suit_filed: '-',
+          credit_facility_status: 'Active',
+          written_off_total: '-',
+          written_off_principal: '-',
+          settlement_amount: '-'
+        }
       },
       {
-        accountType: 'Credit Card',
-        lender: 'ICICI Bank',
-        accountNumber: 'XXXX5678',
-        creditLimit: 100000,
-        currentBalance: 25000,
-        status: 'Active',
-        paymentHistory: 'Regular'
+        member_name: 'ICICI BANK LTD',
+        account_type: 'Credit Card',
+        ownership: 'Individual',
+        account_number: 'XXXX5678',
+        credit_limit: '1,00,000',
+        sanctioned_amount: '1,00,000',
+        current_balance: '25,000',
+        cash_limit: '25,000',
+        amount_overdue: '0',
+        rate_of_interest: '-',
+        repayment_tenure: 'Revolving',
+        emi_amount: '-',
+        payment_frequency: 'Monthly',
+        actual_payment_amount: '-',
+        dates: {
+          date_opened: '2021-06-10',
+          date_closed: null,
+          date_of_last_payment: today,
+          date_reported: today
+        },
+        payment_start_date: '-',
+        payment_end_date: '-',
+        payment_history: [],
+        collateral: {
+          value: '-',
+          type: '-',
+          suit_filed: '-',
+          credit_facility_status: 'Active',
+          written_off_total: '-',
+          written_off_principal: '-',
+          settlement_amount: '-'
+        }
       }
     ],
     enquiries: [
       {
-        date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        institution: 'HDFC Bank',
-        purpose: 'Credit Card'
+        member_name: 'HDFC BANK',
+        date_of_enquiry: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+        enquiry_purpose: 'Credit Card'
       }
-    ]
+    ],
+    summary: {
+      total_accounts: 2,
+      active_accounts: 2,
+      closed_accounts: 0,
+      total_overdue_amount: 0,
+      total_sanctioned_amount: 600000,
+      total_current_balance: 275000
+    }
   };
 }
