@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { FileText, Loader2, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -31,6 +32,7 @@ export default function PartnerGenerate() {
     fullName: '',
     panNumber: '',
     dateOfBirth: '',
+    gender: '',
   });
   const [selectedBureaus, setSelectedBureaus] = useState<string[]>(['cibil']);
 
@@ -80,7 +82,7 @@ export default function PartnerGenerate() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.fullName || !formData.panNumber) {
+    if (!formData.fullName || !formData.panNumber || !formData.gender) {
       toast.error('Please fill all required fields');
       return;
     }
@@ -242,6 +244,23 @@ export default function PartnerGenerate() {
                     value={formData.dateOfBirth}
                     onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
                   />
+                </div>
+                <div className="space-y-3">
+                  <Label>Gender *</Label>
+                  <RadioGroup
+                    value={formData.gender}
+                    onValueChange={(value) => setFormData({ ...formData, gender: value })}
+                    className="flex gap-6"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="male" id="male" />
+                      <Label htmlFor="male" className="font-normal cursor-pointer">Male</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="female" id="female" />
+                      <Label htmlFor="female" className="font-normal cursor-pointer">Female</Label>
+                    </div>
+                  </RadioGroup>
                 </div>
               </CardContent>
             </Card>
