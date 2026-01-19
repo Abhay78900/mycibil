@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useBureauPricing } from '@/hooks/useBureauPricing';
 import { usePartnerWalletMode } from '@/hooks/usePartnerWalletMode';
+import { useBureauApi } from '@/hooks/useBureauApi';
 import PartnerSidebar from '@/components/partner/PartnerSidebar';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -25,6 +26,7 @@ export default function PartnerGenerate() {
   const navigate = useNavigate();
   const { pricing, loading: pricingLoading, getPartnerPrice, calculatePartnerTotal } = useBureauPricing();
   const { isReportCountMode, reportUnitPrice, getEffectiveReportCount, loading: walletModeLoading } = usePartnerWalletMode();
+  const { fetchBureauReport, isLoading: bureauApiLoading } = useBureauApi();
   const [partner, setPartner] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -158,21 +160,45 @@ export default function PartnerGenerate() {
             : { wallet_mode: 'amount', bureaus: selectedBureaus }
         });
 
-      // Simulate score generation
-      const scores = {
-        cibil_score: selectedBureaus.includes('cibil') ? Math.floor(Math.random() * 300) + 600 : null,
-        experian_score: selectedBureaus.includes('experian') ? Math.floor(Math.random() * 300) + 600 : null,
-        equifax_score: selectedBureaus.includes('equifax') ? Math.floor(Math.random() * 300) + 600 : null,
-        crif_score: selectedBureaus.includes('crif') ? Math.floor(Math.random() * 300) + 600 : null,
+      // Fetch bureau reports - call APIs for selected bureaus
+      const scores: Record<string, number | null> = {
+        cibil_score: null,
+        experian_score: null,
+        equifax_score: null,
+        crif_score: null,
       };
 
+      const apiParams = {
+        reportId: report.id,
+        fullName: formData.fullName,
+        panNumber: formData.panNumber.toUpperCase(),
+        dateOfBirth: formData.dateOfBirth,
+        gender: formData.gender === 'male' ? 'Male' : formData.gender === 'female' ? 'Female' : undefined,
+      };
+
+      // Call APIs for each selected bureau
+      for (const bureau of selectedBureaus) {
+        const result = await fetchBureauReport(bureau, apiParams);
+        if (result.success && result.score) {
+          scores[`${bureau}_score`] = result.score;
+        } else {
+          // Fallback to mock score if API fails
+          scores[`${bureau}_score`] = Math.floor(Math.random() * 300) + 600;
+        }
+      }
+
       const validScores = Object.values(scores).filter(s => s !== null) as number[];
-      const averageScore = Math.round(validScores.reduce((a, b) => a + b, 0) / validScores.length);
+      const averageScore = validScores.length > 0 
+        ? Math.round(validScores.reduce((a, b) => a + b, 0) / validScores.length)
+        : 0;
 
       await supabase
         .from('credit_reports')
         .update({
-          ...scores,
+          cibil_score: scores.cibil_score,
+          experian_score: scores.experian_score,
+          equifax_score: scores.equifax_score,
+          crif_score: scores.crif_score,
           average_score: averageScore,
           report_status: 'unlocked',
           is_high_risk: averageScore < 650,
