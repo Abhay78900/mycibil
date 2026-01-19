@@ -58,7 +58,15 @@ Deno.serve(async (req) => {
       .eq('key', 'sandbox_mode')
       .maybeSingle();
 
+    // Check API environment setting (uat or production)
+    const { data: apiEnvSetting } = await supabase
+      .from('system_settings')
+      .select('value')
+      .eq('key', 'api_environment')
+      .maybeSingle();
+
     const isSandboxMode = sandboxSetting?.value?.enabled ?? true;
+    const apiEnvironment = apiEnvSetting?.value?.environment ?? 'uat';
 
     let crifScore: number;
     let rawCrifData: any;
@@ -70,10 +78,13 @@ Deno.serve(async (req) => {
       crifScore = Math.floor(Math.random() * (850 - 650 + 1)) + 650;
       rawCrifData = generateMockCrifData(fullName, panNumber, dateOfBirth, gender, crifScore);
     } else {
-      console.log('Running in production mode - calling IDSpay CRIF API');
-
-      // Call IDSpay CRIF API - UAT URL
-      const crifApiUrl = 'https://javabackend.idspay.in/api/v1/uat/srv3/credit-report/crif';
+      // Determine API URL based on environment setting
+      const baseUrl = apiEnvironment === 'production' 
+        ? 'https://javabackend.idspay.in/api/v1/prod'
+        : 'https://javabackend.idspay.in/api/v1/uat';
+      const crifApiUrl = `${baseUrl}/srv3/credit-report/crif`;
+      
+      console.log(`Running in ${apiEnvironment} mode - calling IDSpay CRIF API: ${crifApiUrl}`);
 
       const apiResponse = await fetch(crifApiUrl, {
         method: 'POST',
