@@ -7,7 +7,8 @@ interface ReportHeaderProps {
 }
 
 export default function ReportHeader({ header }: ReportHeaderProps) {
-  const getBureauLogo = (bureau: string) => {
+  const getBureauLogo = (bureau?: string) => {
+    if (!bureau) return 'Credit Bureau';
     const bureauLower = bureau.toLowerCase();
     if (bureauLower.includes('cibil')) return 'CIBIL';
     if (bureauLower.includes('experian')) return 'Experian';

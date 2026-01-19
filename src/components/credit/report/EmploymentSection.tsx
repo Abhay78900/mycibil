@@ -8,6 +8,9 @@ interface EmploymentSectionProps {
 }
 
 export default function EmploymentSection({ data }: EmploymentSectionProps) {
+  // Defensive: ensure data is an array
+  const safeData = Array.isArray(data) ? data : [];
+
   return (
     <Card className="mb-6">
       <CardHeader className="pb-3">
@@ -26,12 +29,12 @@ export default function EmploymentSection({ data }: EmploymentSectionProps) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {data.length > 0 ? (
-              data.map((emp, index) => (
+            {safeData.length > 0 ? (
+              safeData.map((emp, index) => (
                 <TableRow key={index}>
-                  <TableCell>{formatValue(emp.account_type)}</TableCell>
-                  <TableCell>{formatValue(emp.date_reported)}</TableCell>
-                  <TableCell>{formatValue(emp.occupation)}</TableCell>
+                  <TableCell>{formatValue(emp?.account_type)}</TableCell>
+                  <TableCell>{formatValue(emp?.date_reported)}</TableCell>
+                  <TableCell>{formatValue(emp?.occupation)}</TableCell>
                 </TableRow>
               ))
             ) : (
@@ -44,19 +47,19 @@ export default function EmploymentSection({ data }: EmploymentSectionProps) {
           </TableBody>
         </Table>
 
-        {data.length > 0 && data[0].income && (
+        {safeData.length > 0 && safeData[0]?.income && (
           <div className="grid grid-cols-3 gap-4 mt-4 pt-4 border-t">
             <div>
               <p className="text-xs text-muted-foreground uppercase">INCOME</p>
-              <p className="font-medium">{formatValue(data[0].income)}</p>
+              <p className="font-medium">{formatValue(safeData[0]?.income)}</p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground uppercase">FREQUENCY</p>
-              <p className="font-medium">{formatValue(data[0].frequency)}</p>
+              <p className="font-medium">{formatValue(safeData[0]?.frequency)}</p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground uppercase">INCOME INDICATOR</p>
-              <p className="font-medium">{formatValue(data[0].income_indicator)}</p>
+              <p className="font-medium">{formatValue(safeData[0]?.income_indicator)}</p>
             </div>
           </div>
         )}
