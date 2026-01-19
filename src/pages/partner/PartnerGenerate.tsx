@@ -33,6 +33,7 @@ export default function PartnerGenerate() {
   const [formData, setFormData] = useState({
     fullName: '',
     panNumber: '',
+    mobileNumber: '',
     dateOfBirth: '',
     gender: '',
   });
@@ -84,7 +85,7 @@ export default function PartnerGenerate() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.fullName || !formData.panNumber || !formData.gender) {
+    if (!formData.fullName || !formData.panNumber || !formData.mobileNumber || !formData.gender) {
       toast.error('Please fill all required fields');
       return;
     }
@@ -172,6 +173,7 @@ export default function PartnerGenerate() {
         reportId: report.id,
         fullName: formData.fullName,
         panNumber: formData.panNumber.toUpperCase(),
+        mobileNumber: formData.mobileNumber,
         dateOfBirth: formData.dateOfBirth,
         gender: formData.gender === 'male' ? 'Male' : formData.gender === 'female' ? 'Female' : undefined,
       };
@@ -258,6 +260,17 @@ export default function PartnerGenerate() {
                     value={formData.panNumber}
                     onChange={(e) => setFormData({ ...formData, panNumber: e.target.value.toUpperCase() })}
                     placeholder="ABCDE1234F"
+                    maxLength={10}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="mobileNumber">Mobile Number *</Label>
+                  <Input
+                    id="mobileNumber"
+                    value={formData.mobileNumber}
+                    onChange={(e) => setFormData({ ...formData, mobileNumber: e.target.value.replace(/\D/g, '').slice(0, 10) })}
+                    placeholder="10-digit mobile number"
                     maxLength={10}
                     required
                   />

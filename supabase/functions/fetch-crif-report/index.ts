@@ -9,6 +9,7 @@ interface CrifRequest {
   reportId: string;
   fullName: string;
   panNumber: string;
+  mobileNumber: string;
   dateOfBirth?: string;
   gender?: string;
 }
@@ -20,14 +21,14 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { reportId, fullName, panNumber, dateOfBirth, gender } = await req.json() as CrifRequest;
+    const { reportId, fullName, panNumber, mobileNumber, dateOfBirth, gender } = await req.json() as CrifRequest;
 
-    console.log('CRIF API request:', { reportId, fullName, panNumber, dateOfBirth, gender });
+    console.log('CRIF API request:', { reportId, fullName, panNumber, mobileNumber, dateOfBirth, gender });
 
     // Validate required fields
-    if (!reportId || !fullName || !panNumber) {
+    if (!reportId || !fullName || !panNumber || !mobileNumber) {
       return new Response(
-        JSON.stringify({ success: false, error: 'Missing required fields: reportId, fullName, panNumber' }),
+        JSON.stringify({ success: false, error: 'Missing required fields: reportId, fullName, panNumber, mobileNumber' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -85,8 +86,10 @@ Deno.serve(async (req) => {
           token_id: tokenId,
           pan: panNumber,
           name: fullName,
+          mobile: mobileNumber,
           dob: dateOfBirth,
-          gender: gender === 'Male' ? 'M' : gender === 'Female' ? 'F' : undefined
+          gender: gender === 'Male' ? 'M' : gender === 'Female' ? 'F' : undefined,
+          consent: 'Y'
         }),
       });
 

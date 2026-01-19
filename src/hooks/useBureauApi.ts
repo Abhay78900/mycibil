@@ -6,6 +6,7 @@ interface FetchBureauParams {
   reportId: string;
   fullName: string;
   panNumber: string;
+  mobileNumber: string;
   dateOfBirth?: string;
   gender?: string;
 }
