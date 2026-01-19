@@ -2,3 +2,6 @@ project_id = "mhmwzlzccxjsihqalrau"
 
 [functions.register-partner]
 verify_jwt = false
+
+[functions.fetch-crif-report]
+verify_jwt = false
