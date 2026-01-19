@@ -3,6 +3,7 @@ import UnifiedReportView from './report/UnifiedReportView';
 import { UnifiedCreditReport } from '@/types/creditReport';
 import { format } from 'date-fns';
 import { generateMockReportFromTemplate } from '@/data/mockReportData';
+import { crifIdspayToUnifiedReport, isCrifIdspayResponse } from '@/utils/crifToUnifiedReport';
 
 interface FullCreditReportViewProps {
   report: CreditReport;
@@ -33,6 +34,11 @@ function transformToUnifiedReport(rawReport: CreditReport, bureauName: string): 
     return rawData as UnifiedCreditReport;
   }
 
+  // If CRIF raw data is in IDSpay format, transform it to unified format
+  if (rawData && isCrifIdspayResponse(rawData)) {
+    return crifIdspayToUnifiedReport(rawData, bureauName, rawReport);
+  }
+
   // Generate mock report using the Puran Mal Tank template format
   // This will be replaced by real API data when integrated
   if (score) {
@@ -43,13 +49,13 @@ function transformToUnifiedReport(rawReport: CreditReport, bureauName: string): 
       'Male', // Default gender, will come from API
       score
     );
-    
+
     // Override the header with actual bureau info
     mockReport.header = {
       bureau_name: bureauName,
       control_number: rawReport.id?.slice(0, 10) || Math.random().toString().slice(2, 12),
-      report_date: rawReport.created_at 
-        ? format(new Date(rawReport.created_at), 'yyyy-MM-dd') 
+      report_date: rawReport.created_at
+        ? format(new Date(rawReport.created_at), 'yyyy-MM-dd')
         : format(new Date(), 'yyyy-MM-dd'),
       credit_score: score
     };
