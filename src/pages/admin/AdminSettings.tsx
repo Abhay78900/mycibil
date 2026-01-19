@@ -10,17 +10,19 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Settings, IndianRupee, Loader2, Save, Users, Building2, Wallet, FileText, FlaskConical, Zap, AlertTriangle } from 'lucide-react';
+import { Settings, IndianRupee, Loader2, Save, Users, Building2, Wallet, FileText, FlaskConical, Zap, AlertTriangle, Server, TestTube2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { BureauPricing } from '@/types/bureauPricing';
 import { usePartnerWalletMode } from '@/hooks/usePartnerWalletMode';
 import { useSandboxMode } from '@/hooks/useSandboxMode';
+import { useApiEnvironment, ApiEnvironment } from '@/hooks/useApiEnvironment';
 
 export default function AdminSettings() {
   const { userRole, signOut, loading } = useAuth();
   const navigate = useNavigate();
   const { settings: walletSettings, loading: walletLoading, updateSettings: updateWalletSettings } = usePartnerWalletMode();
   const { settings: sandboxSettings, loading: sandboxLoading, updateSettings: updateSandboxSettings } = useSandboxMode();
+  const { settings: apiEnvSettings, loading: apiEnvLoading, updateSettings: updateApiEnvSettings } = useApiEnvironment();
   
   const [bureauPricing, setBureauPricing] = useState<BureauPricing[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -35,6 +37,10 @@ export default function AdminSettings() {
   // Sandbox mode settings
   const [sandboxModeEnabled, setSandboxModeEnabled] = useState(true);
   const [isSavingSandboxSettings, setIsSavingSandboxSettings] = useState(false);
+
+  // API Environment settings
+  const [apiEnvironment, setApiEnvironment] = useState<ApiEnvironment>('uat');
+  const [isSavingApiEnvSettings, setIsSavingApiEnvSettings] = useState(false);
 
   useEffect(() => {
     if (!loading && userRole !== 'admin') {
@@ -58,6 +64,12 @@ export default function AdminSettings() {
       setSandboxModeEnabled(sandboxSettings.enabled);
     }
   }, [sandboxSettings, sandboxLoading]);
+
+  useEffect(() => {
+    if (!apiEnvLoading) {
+      setApiEnvironment(apiEnvSettings.environment);
+    }
+  }, [apiEnvSettings, apiEnvLoading]);
 
   const loadSettings = async () => {
     try {
@@ -182,6 +194,10 @@ export default function AdminSettings() {
     return sandboxModeEnabled !== sandboxSettings.enabled;
   };
 
+  const hasApiEnvChanges = () => {
+    return apiEnvironment !== apiEnvSettings.environment;
+  };
+
   const handleSaveSandboxSettings = async () => {
     setIsSavingSandboxSettings(true);
     try {
@@ -201,7 +217,26 @@ export default function AdminSettings() {
     }
   };
 
-  if (loading || isLoading || walletLoading || sandboxLoading) {
+  const handleSaveApiEnvSettings = async () => {
+    setIsSavingApiEnvSettings(true);
+    try {
+      const success = await updateApiEnvSettings({
+        environment: apiEnvironment,
+      });
+
+      if (success) {
+        toast.success(apiEnvironment === 'production' 
+          ? 'Switched to Production API endpoints' 
+          : 'Switched to UAT API endpoints');
+      } else {
+        toast.error('Failed to update API environment settings');
+      }
+    } finally {
+      setIsSavingApiEnvSettings(false);
+    }
+  };
+
+  if (loading || isLoading || walletLoading || sandboxLoading || apiEnvLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -317,6 +352,116 @@ export default function AdminSettings() {
                     <p className="text-sm text-muted-foreground mt-1">
                       Ensure all bureau API keys (CIBIL, Experian, Equifax, CRIF) are configured before enabling production mode.
                       Real API calls will incur costs per report.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* API Environment Settings (UAT vs Production) */}
+          <Card className="mb-8">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${apiEnvironment === 'uat' ? 'bg-blue-500/20' : 'bg-score-excellent/20'}`}>
+                    {apiEnvironment === 'uat' ? (
+                      <TestTube2 className="w-6 h-6 text-blue-500" />
+                    ) : (
+                      <Server className="w-6 h-6 text-score-excellent" />
+                    )}
+                  </div>
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      API Environment
+                      <Badge variant="secondary" className={apiEnvironment === 'uat' ? "bg-blue-500/20 text-blue-500" : "bg-score-excellent/20 text-score-excellent"}>
+                        {apiEnvironment === 'uat' ? 'UAT' : 'Production'}
+                      </Badge>
+                    </CardTitle>
+                    <CardDescription className="mt-1">
+                      Switch between UAT (testing) and Production API endpoints
+                    </CardDescription>
+                  </div>
+                </div>
+                {hasApiEnvChanges() && (
+                  <Button onClick={handleSaveApiEnvSettings} disabled={isSavingApiEnvSettings}>
+                    {isSavingApiEnvSettings ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Save className="w-4 h-4 mr-2" />
+                    )}
+                    Save
+                  </Button>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Environment Toggle */}
+              <div className="flex items-center justify-between p-4 bg-accent/30 rounded-lg">
+                <div className="flex items-center gap-4">
+                  <div>
+                    <Label className="text-base font-semibold">Production Environment</Label>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {apiEnvironment === 'production' 
+                        ? 'API calls go to production endpoints'
+                        : 'API calls go to UAT/testing endpoints'}
+                    </p>
+                  </div>
+                </div>
+                <Switch
+                  checked={apiEnvironment === 'production'}
+                  onCheckedChange={(checked) => setApiEnvironment(checked ? 'production' : 'uat')}
+                />
+              </div>
+
+              {/* Environment Explanation Cards */}
+              <div className="grid md:grid-cols-2 gap-4">
+                <Card className={`transition-all ${apiEnvironment === 'uat' ? 'ring-2 ring-blue-500' : 'opacity-60'}`}>
+                  <CardContent className="pt-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <TestTube2 className="w-5 h-5 text-blue-500" />
+                      <h4 className="font-semibold">UAT Environment {apiEnvironment === 'uat' && <span className="text-xs text-blue-500">(Active)</span>}</h4>
+                    </div>
+                    <ul className="text-sm text-muted-foreground space-y-1">
+                      <li>• Uses UAT/test API endpoints</li>
+                      <li>• Test data from bureau sandboxes</li>
+                      <li>• Safe for development & testing</li>
+                      <li>• May have different rate limits</li>
+                    </ul>
+                    <p className="text-xs text-muted-foreground mt-3 font-mono bg-muted/50 p-2 rounded">
+                      .../api/v1/uat/...
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card className={`transition-all ${apiEnvironment === 'production' ? 'ring-2 ring-score-excellent' : 'opacity-60'}`}>
+                  <CardContent className="pt-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Server className="w-5 h-5 text-score-excellent" />
+                      <h4 className="font-semibold">Production Environment {apiEnvironment === 'production' && <span className="text-xs text-score-excellent">(Active)</span>}</h4>
+                    </div>
+                    <ul className="text-sm text-muted-foreground space-y-1">
+                      <li>• Uses live production endpoints</li>
+                      <li>• Real credit bureau data</li>
+                      <li>• Production API credentials</li>
+                      <li>• Actual costs per API call</li>
+                    </ul>
+                    <p className="text-xs text-muted-foreground mt-3 font-mono bg-muted/50 p-2 rounded">
+                      .../api/v1/prod/...
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Warning when switching to production environment */}
+              {apiEnvironment === 'production' && (
+                <div className="flex items-start gap-3 p-4 rounded-lg bg-warning/10 border border-warning/30">
+                  <AlertTriangle className="w-5 h-5 text-warning mt-0.5 shrink-0" />
+                  <div>
+                    <p className="font-medium text-warning">Production Environment Warning</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Production API calls use live bureau endpoints and may incur actual costs.
+                      Ensure your API credentials are configured for production use.
                     </p>
                   </div>
                 </div>
