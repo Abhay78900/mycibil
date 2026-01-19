@@ -75,66 +75,26 @@ Deno.serve(async (req) => {
       // Call IDSpay CRIF API - UAT URL
       const crifApiUrl = 'https://javabackend.idspay.in/api/v1/uat/srv3/credit-report/crif';
 
-      const requestBody = {
-        api_id: apiId,
-        api_key: apiKey,
-        token_id: tokenId,
-        pan: panNumber,
-        name: fullName,
-        mobile: mobileNumber,
-        dob: dateOfBirth,
-        gender: gender === 'Male' ? 'M' : gender === 'Female' ? 'F' : undefined,
-        consent: 'Y'
-      };
-
-      console.log('Calling CRIF API URL:', crifApiUrl);
-      console.log('Request body (redacted):', { ...requestBody, api_key: '***', token_id: '***' });
-
       const apiResponse = await fetch(crifApiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify({
+          api_id: apiId,
+          api_key: apiKey,
+          token_id: tokenId,
+          pan: panNumber,
+          name: fullName,
+          mobile: mobileNumber,
+          dob: dateOfBirth,
+          gender: gender === 'Male' ? 'M' : gender === 'Female' ? 'F' : undefined,
+          consent: 'Y'
+        }),
       });
 
+      const apiData = await apiResponse.json();
       console.log('CRIF API response status:', apiResponse.status);
-      console.log('CRIF API response headers:', Object.fromEntries(apiResponse.headers.entries()));
-
-      // Get raw text first to handle non-JSON responses
-      const rawResponseText = await apiResponse.text();
-      console.log('CRIF API raw response (first 500 chars):', rawResponseText.slice(0, 500));
-
-      // Check if response is HTML (error page)
-      if (rawResponseText.startsWith('<!DOCTYPE') || rawResponseText.startsWith('<html')) {
-        console.error('API returned HTML instead of JSON - likely endpoint error or authentication issue');
-        return new Response(
-          JSON.stringify({ 
-            success: false, 
-            error: 'CRIF API returned an error page. Please verify API credentials and endpoint URL.',
-            details: `Status: ${apiResponse.status}, Response starts with: ${rawResponseText.slice(0, 100)}`
-          }),
-          { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      // Parse JSON
-      let apiData;
-      try {
-        apiData = JSON.parse(rawResponseText);
-      } catch (parseError) {
-        console.error('Failed to parse API response as JSON:', parseError);
-        return new Response(
-          JSON.stringify({ 
-            success: false, 
-            error: 'Invalid JSON response from CRIF API',
-            details: rawResponseText.slice(0, 200)
-          }),
-          { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      console.log('CRIF API parsed response:', JSON.stringify(apiData).slice(0, 500));
 
       if (!apiResponse.ok) {
         console.error('CRIF API error:', apiData);
