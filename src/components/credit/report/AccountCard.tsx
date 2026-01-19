@@ -30,6 +30,28 @@ function getPaymentStatusColor(value: string): string {
 }
 
 export default function AccountCard({ account, index }: AccountCardProps) {
+  // Defensive: ensure nested objects exist with defaults
+  const safeDates = account?.dates || {
+    date_opened: '---',
+    date_closed: null,
+    date_of_last_payment: null,
+    date_reported: '---'
+  };
+  const safeCollateral = account?.collateral || {
+    value: '---',
+    type: '---',
+    suit_filed: '---',
+    credit_facility_status: '---',
+    written_off_total: '---',
+    written_off_principal: '---',
+    settlement_amount: '---'
+  };
+  const safePaymentHistory = account?.payment_history || [];
+
+  if (!account) {
+    return null;
+  }
+
   return (
     <Card className="mb-4 overflow-hidden">
       {/* Account Header */}
@@ -120,19 +142,19 @@ export default function AccountCard({ account, index }: AccountCardProps) {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
             <div>
               <p className="text-xs text-muted-foreground">DATE OPENED/DISBURSED</p>
-              <p className="font-medium">{formatValue(account.dates.date_opened)}</p>
+              <p className="font-medium">{formatValue(safeDates.date_opened)}</p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground">DATE OF LAST PAYMENT</p>
-              <p className="font-medium">{formatValue(account.dates.date_of_last_payment)}</p>
+              <p className="font-medium">{formatValue(safeDates.date_of_last_payment)}</p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground">DATE CLOSED</p>
-              <p className="font-medium">{formatValue(account.dates.date_closed)}</p>
+              <p className="font-medium">{formatValue(safeDates.date_closed)}</p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground">DATE REPORTED AND CERTIFIED</p>
-              <p className="font-medium">{formatValue(account.dates.date_reported)}</p>
+              <p className="font-medium">{formatValue(safeDates.date_reported)}</p>
             </div>
           </div>
         </div>
@@ -161,11 +183,11 @@ export default function AccountCard({ account, index }: AccountCardProps) {
                 </tr>
               </thead>
               <tbody>
-                {account.payment_history.map((yearData, idx) => (
+                {safePaymentHistory.map((yearData, idx) => (
                   <tr key={idx} className="border-b last:border-0">
-                    <td className="py-2 pr-2 font-semibold">{yearData.year}</td>
+                    <td className="py-2 pr-2 font-semibold">{yearData?.year || '---'}</td>
                     {MONTHS.map((month) => {
-                      const value = yearData.months[month] || '';
+                      const value = yearData?.months?.[month] || '';
                       return (
                         <td key={month} className="text-center py-2 px-1">
                           <span className={`inline-block min-w-[28px] py-0.5 px-1 rounded text-xs font-medium ${getPaymentStatusColor(value)}`}>
@@ -176,7 +198,7 @@ export default function AccountCard({ account, index }: AccountCardProps) {
                     })}
                   </tr>
                 ))}
-                {account.payment_history.length === 0 && (
+                {safePaymentHistory.length === 0 && (
                   <tr>
                     <td colSpan={13} className="text-center py-4 text-muted-foreground">
                       No payment history available
@@ -194,33 +216,33 @@ export default function AccountCard({ account, index }: AccountCardProps) {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
             <div>
               <p className="text-xs text-muted-foreground">VALUE OF COLLATERAL</p>
-              <p className="font-medium">₹{formatValue(account.collateral.value, true)}</p>
+              <p className="font-medium">₹{formatValue(safeCollateral.value, true)}</p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground">TYPE OF COLLATERAL</p>
-              <p className="font-medium">{formatValue(account.collateral.type)}</p>
+              <p className="font-medium">{formatValue(safeCollateral.type)}</p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground">SUIT FILED / WILLFUL DEFAULT</p>
-              <p className="font-medium">{formatValue(account.collateral.suit_filed)}</p>
+              <p className="font-medium">{formatValue(safeCollateral.suit_filed)}</p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground">CREDIT FACILITY STATUS</p>
-              <p className="font-medium">{formatValue(account.collateral.credit_facility_status)}</p>
+              <p className="font-medium">{formatValue(safeCollateral.credit_facility_status)}</p>
             </div>
           </div>
           <div className="grid grid-cols-3 gap-4 text-sm mt-3">
             <div>
               <p className="text-xs text-muted-foreground">WRITTEN-OFF AMOUNT (TOTAL)</p>
-              <p className="font-medium">{formatValue(account.collateral.written_off_total, true)}</p>
+              <p className="font-medium">{formatValue(safeCollateral.written_off_total, true)}</p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground">WRITTEN-OFF AMOUNT (PRINCIPAL)</p>
-              <p className="font-medium">{formatValue(account.collateral.written_off_principal, true)}</p>
+              <p className="font-medium">{formatValue(safeCollateral.written_off_principal, true)}</p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground">SETTLEMENT AMOUNT</p>
-              <p className="font-medium">{formatValue(account.collateral.settlement_amount, true)}</p>
+              <p className="font-medium">{formatValue(safeCollateral.settlement_amount, true)}</p>
             </div>
           </div>
         </div>

@@ -8,6 +8,14 @@ interface PersonalInfoSectionProps {
 }
 
 export default function PersonalInfoSection({ data }: PersonalInfoSectionProps) {
+  // Defensive: ensure data exists with defaults
+  const safeData = {
+    full_name: data?.full_name || 'Not Reported',
+    date_of_birth: data?.date_of_birth || '---',
+    gender: data?.gender || '---',
+    identifications: data?.identifications || []
+  };
+
   return (
     <Card className="mb-6">
       <CardHeader className="pb-3">
@@ -21,15 +29,15 @@ export default function PersonalInfoSection({ data }: PersonalInfoSectionProps) 
         <div className="grid grid-cols-3 gap-4 mb-6 pb-4 border-b">
           <div>
             <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">NAME</p>
-            <p className="font-semibold">{formatValue(data.full_name)}</p>
+            <p className="font-semibold">{formatValue(safeData.full_name)}</p>
           </div>
           <div>
             <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">DATE OF BIRTH</p>
-            <p className="font-semibold">{formatValue(data.date_of_birth)}</p>
+            <p className="font-semibold">{formatValue(safeData.date_of_birth)}</p>
           </div>
           <div>
             <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">GENDER</p>
-            <p className="font-semibold">{formatValue(data.gender)}</p>
+            <p className="font-semibold">{formatValue(safeData.gender)}</p>
           </div>
         </div>
 
@@ -44,13 +52,13 @@ export default function PersonalInfoSection({ data }: PersonalInfoSectionProps) 
             </TableRow>
           </TableHeader>
           <TableBody>
-            {data.identifications.length > 0 ? (
-              data.identifications.map((id, index) => (
+            {safeData.identifications.length > 0 ? (
+              safeData.identifications.map((id, index) => (
                 <TableRow key={index}>
-                  <TableCell className="font-medium">{formatValue(id.type)}</TableCell>
-                  <TableCell>{formatValue(id.number)}</TableCell>
-                  <TableCell>{formatValue(id.issue_date)}</TableCell>
-                  <TableCell>{formatValue(id.expiration_date)}</TableCell>
+                  <TableCell className="font-medium">{formatValue(id?.type)}</TableCell>
+                  <TableCell>{formatValue(id?.number)}</TableCell>
+                  <TableCell>{formatValue(id?.issue_date)}</TableCell>
+                  <TableCell>{formatValue(id?.expiration_date)}</TableCell>
                 </TableRow>
               ))
             ) : (
