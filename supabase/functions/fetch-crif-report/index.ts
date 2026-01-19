@@ -86,32 +86,76 @@ Deno.serve(async (req) => {
       
       console.log(`Running in ${apiEnvironment} mode - calling IDSpay CRIF API: ${crifApiUrl}`);
 
+      const requestBody = {
+        api_id: apiId,
+        api_key: apiKey,
+        token_id: tokenId,
+        pan: panNumber,
+        name: fullName,
+        mobile: mobileNumber,
+        dob: dateOfBirth,
+        gender: gender === 'Male' ? 'M' : gender === 'Female' ? 'F' : undefined,
+        consent: 'Y'
+      };
+
+      console.log('CRIF API request body (redacted):', { ...requestBody, api_key: '***', token_id: '***' });
+
       const apiResponse = await fetch(crifApiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
         },
-        body: JSON.stringify({
-          api_id: apiId,
-          api_key: apiKey,
-          token_id: tokenId,
-          pan: panNumber,
-          name: fullName,
-          mobile: mobileNumber,
-          dob: dateOfBirth,
-          gender: gender === 'Male' ? 'M' : gender === 'Female' ? 'F' : undefined,
-          consent: 'Y'
-        }),
+        body: JSON.stringify(requestBody),
       });
 
-      const apiData = await apiResponse.json();
       console.log('CRIF API response status:', apiResponse.status);
+      console.log('CRIF API response content-type:', apiResponse.headers.get('content-type'));
+
+      // Get raw response text first to handle HTML error pages
+      const responseText = await apiResponse.text();
+      
+      // Check if response is HTML (error page) instead of JSON
+      if (responseText.startsWith('<!DOCTYPE') || responseText.startsWith('<html')) {
+        console.error('CRIF API returned HTML error page:', responseText.substring(0, 500));
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: `CRIF API returned error page (status ${apiResponse.status}). The API endpoint may be incorrect or the server is returning an error.` 
+          }),
+          { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Try to parse JSON
+      let apiData: any;
+      try {
+        apiData = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('Failed to parse CRIF API response:', responseText.substring(0, 500));
+        return new Response(
+          JSON.stringify({ success: false, error: 'Invalid response from CRIF API - not valid JSON' }),
+          { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      console.log('CRIF API parsed response keys:', Object.keys(apiData));
+      console.log('CRIF API response preview:', JSON.stringify(apiData).substring(0, 1000));
 
       if (!apiResponse.ok) {
         console.error('CRIF API error:', apiData);
         return new Response(
-          JSON.stringify({ success: false, error: apiData.message || 'CRIF API request failed' }),
+          JSON.stringify({ success: false, error: apiData.message || apiData.error || 'CRIF API request failed' }),
           { status: apiResponse.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Check for API-level errors in response
+      if (apiData.status === 'error' || apiData.success === false) {
+        console.error('CRIF API returned error:', apiData);
+        return new Response(
+          JSON.stringify({ success: false, error: apiData.message || apiData.error || 'CRIF API returned error' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
