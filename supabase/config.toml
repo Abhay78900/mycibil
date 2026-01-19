@@ -5,3 +5,12 @@ verify_jwt = false
 
 [functions.fetch-crif-report]
 verify_jwt = false
+
+[functions.fetch-cibil-report]
+verify_jwt = false
+
+[functions.fetch-experian-report]
+verify_jwt = false
+
+[functions.fetch-equifax-report]
+verify_jwt = false
