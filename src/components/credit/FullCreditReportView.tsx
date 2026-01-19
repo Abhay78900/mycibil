@@ -3,7 +3,12 @@ import UnifiedReportView from './report/UnifiedReportView';
 import { UnifiedCreditReport } from '@/types/creditReport';
 import { format } from 'date-fns';
 import { generateMockReportFromTemplate } from '@/data/mockReportData';
-import { crifIdspayToUnifiedReport, isCrifIdspayResponse } from '@/utils/crifToUnifiedReport';
+import { 
+  parseBureauResponse, 
+  parseByBureauName, 
+  createFallbackReport,
+  BureauParserContext 
+} from '@/utils/bureauParsers';
 
 interface FullCreditReportViewProps {
   report: CreditReport;
@@ -11,42 +16,64 @@ interface FullCreditReportViewProps {
 }
 
 function transformToUnifiedReport(rawReport: CreditReport, bureauName: string): UnifiedCreditReport {
-  // Determine bureau and score
+  // Determine bureau and get score/raw data
   let score: number | null = null;
   let rawData: any = null;
 
-  if (bureauName.toLowerCase().includes('cibil')) {
+  const normalizedBureau = bureauName.toLowerCase();
+
+  if (normalizedBureau.includes('cibil')) {
     score = rawReport.cibil_score;
     rawData = rawReport.raw_cibil_data;
-  } else if (bureauName.toLowerCase().includes('experian')) {
+  } else if (normalizedBureau.includes('experian')) {
     score = rawReport.experian_score;
     rawData = rawReport.raw_experian_data;
-  } else if (bureauName.toLowerCase().includes('equifax')) {
+  } else if (normalizedBureau.includes('equifax')) {
     score = rawReport.equifax_score;
     rawData = rawReport.raw_equifax_data;
-  } else if (bureauName.toLowerCase().includes('crif') || bureauName.toLowerCase().includes('highmark')) {
+  } else if (normalizedBureau.includes('crif') || normalizedBureau.includes('highmark')) {
     score = rawReport.crif_score;
     rawData = rawReport.raw_crif_data;
   }
 
-  // If raw data is already in unified format (from real API), use it directly
-  if (rawData && typeof rawData === 'object' && (rawData as any).header) {
+  // If raw data is already in unified format (has header section), use it directly
+  if (rawData && typeof rawData === 'object' && rawData.header) {
+    // Ensure score is set from the data or from the report
+    if (!rawData.header.credit_score && score) {
+      rawData.header.credit_score = score;
+    }
     return rawData as UnifiedCreditReport;
   }
 
-  // If CRIF raw data is in IDSpay format, transform it to unified format
-  if (rawData && isCrifIdspayResponse(rawData)) {
-    return crifIdspayToUnifiedReport(rawData, bureauName, rawReport);
+  // Create parser context from report data
+  const context: BureauParserContext = {
+    reportId: rawReport.id || '',
+    fullName: rawReport.full_name || 'Not Reported',
+    panNumber: rawReport.pan_number || '',
+    dateOfBirth: rawReport.date_of_birth,
+    gender: 'Male', // Default, will be overridden by API data
+    mobileNumber: undefined, // Not stored in report table
+  };
+
+  // Try to parse using the bureau-specific parser
+  if (rawData && typeof rawData === 'object') {
+    const parseResult = parseByBureauName(bureauName, rawData, context);
+    
+    if (parseResult.success && parseResult.unifiedReport) {
+      console.log(`Successfully parsed ${bureauName} response using bureau parser`);
+      return parseResult.unifiedReport;
+    } else {
+      console.warn(`Bureau parser failed for ${bureauName}:`, parseResult.error);
+    }
   }
 
-  // Generate mock report using the Puran Mal Tank template format
-  // This will be replaced by real API data when integrated
+  // Fallback: Generate mock report using the Puran Mal Tank template format
   if (score) {
     const mockReport = generateMockReportFromTemplate(
       rawReport.full_name || 'Not Reported',
       rawReport.pan_number || 'Not Reported',
       rawReport.date_of_birth || '---',
-      'Male', // Default gender, will come from API
+      'Male',
       score
     );
 
@@ -173,41 +200,8 @@ function transformToUnifiedReport(rawReport: CreditReport, bureauName: string): 
     return mockReport;
   }
 
-  // Fallback: construct minimal report from database fields
-  const unifiedReport: UnifiedCreditReport = {
-    header: {
-      bureau_name: bureauName,
-      control_number: rawReport.id || '---',
-      report_date: rawReport.created_at ? format(new Date(rawReport.created_at), 'yyyy-MM-dd') : '---',
-      credit_score: score
-    },
-    personal_information: {
-      full_name: rawReport.full_name || 'Not Reported',
-      date_of_birth: rawReport.date_of_birth || '---',
-      gender: 'Not Reported',
-      identifications: [
-        { type: 'PAN', number: rawReport.pan_number || 'Not Reported', issue_date: null, expiration_date: null }
-      ]
-    },
-    contact_information: {
-      addresses: [],
-      phone_numbers: [],
-      email_addresses: []
-    },
-    employment_information: [],
-    accounts: [],
-    summary: {
-      total_accounts: 0,
-      active_accounts: 0,
-      closed_accounts: 0,
-      total_overdue_amount: 0,
-      total_current_balance: 0,
-      total_sanctioned_amount: 0
-    },
-    enquiries: []
-  };
-
-  return unifiedReport;
+  // Ultimate fallback: create minimal report using the fallback generator
+  return createFallbackReport(context, bureauName, score);
 }
 
 // Helper function to generate payment history from loan data
