@@ -72,8 +72,8 @@ Deno.serve(async (req) => {
     } else {
       console.log('Running in production mode - calling IDSpay CRIF API');
 
-      // Call IDSpay CRIF API - UAT URL
-      const crifApiUrl = 'https://javabackend.idspay.in/api/v1/uat/srv3/credit-report/crif';
+      // Call IDSpay CRIF API - Production URL
+      const crifApiUrl = 'https://javabackend.idspay.in/api/v1/prod/srv3/credit-report/crif';
 
       const apiResponse = await fetch(crifApiUrl, {
         method: 'POST',
