@@ -65,16 +65,16 @@ Deno.serve(async (req) => {
 
     if (isSandboxMode) {
       console.log('Running in sandbox mode - generating mock CRIF data');
-      
+
       // Generate mock CRIF data
       crifScore = Math.floor(Math.random() * (850 - 650 + 1)) + 650;
       rawCrifData = generateMockCrifData(fullName, panNumber, dateOfBirth, gender, crifScore);
     } else {
       console.log('Running in production mode - calling IDSpay CRIF API');
-      
+
       // Call IDSpay CRIF API - Production URL
       const crifApiUrl = 'https://javabackend.idspay.in/api/v1/prod/srv3/credit-report/crif';
-      
+
       const apiResponse = await fetch(crifApiUrl, {
         method: 'POST',
         headers: {
@@ -104,10 +104,19 @@ Deno.serve(async (req) => {
         );
       }
 
-      rawCrifData = apiData;
-      
-      // Extract score from API response - adjust based on actual API response structure
+      // Extract score from API response
       crifScore = extractCrifScore(apiData);
+
+      // Transform IDSpay CRIF response to the unified report shape used by the UI.
+      // This ensures the frontend renders the real report instead of generating a mock template.
+      rawCrifData = transformCrifToUnifiedReport(apiData, {
+        bureauName: 'CRIF High Mark',
+        reportId,
+        fullName,
+        panNumber,
+        dateOfBirth,
+        gender,
+      });
     }
 
     // Update the credit report with CRIF data
@@ -138,10 +147,10 @@ Deno.serve(async (req) => {
     if (report) {
       const scores = [report.cibil_score, report.experian_score, report.equifax_score, report.crif_score]
         .filter(s => s !== null) as number[];
-      
+
       if (scores.length > 0) {
         const averageScore = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
-        
+
         await supabase
           .from('credit_reports')
           .update({ average_score: averageScore })
@@ -175,15 +184,170 @@ Deno.serve(async (req) => {
 
 function extractCrifScore(apiData: any): number {
   // Extract score from CRIF API response
-  // Adjust this based on actual API response structure
-  if (apiData?.score) return apiData.score;
-  if (apiData?.data?.score) return apiData.data.score;
-  if (apiData?.creditScore) return apiData.creditScore;
-  if (apiData?.data?.creditScore) return apiData.data.creditScore;
-  
+  if (apiData?.score) return Number(apiData.score);
+  if (apiData?.data?.score) return Number(apiData.data.score);
+  if (apiData?.creditScore) return Number(apiData.creditScore);
+  if (apiData?.data?.creditScore) return Number(apiData.data.creditScore);
+
+  // IDSpay CRIF: data.credit_score is a string number
+  if (apiData?.data?.credit_score) return Number(String(apiData.data.credit_score).replace(/,/g, ''));
+
   // Default mock score if not found
   return Math.floor(Math.random() * (850 - 650 + 1)) + 650;
 }
+
+function normalizeCrifDate(input?: string | null): string {
+  if (!input) return '---';
+  if (/^\d{4}-\d{2}-\d{2}/.test(input)) return input.slice(0, 10);
+  const m = String(input).match(/^(\d{2})-(\d{2})-(\d{4})$/);
+  if (m) return `${m[3]}-${m[2]}-${m[1]}`;
+  return String(input);
+}
+
+function toNum(input: unknown): number {
+  const n = Number(String(input ?? '').replace(/,/g, '').trim());
+  return Number.isFinite(n) ? n : 0;
+}
+
+function ensureArray<T>(val: any): T[] {
+  if (Array.isArray(val)) return val;
+  if (val && typeof val === 'object') return [val as T];
+  return [];
+}
+
+function transformCrifToUnifiedReport(apiData: any, ctx: {
+  bureauName: string;
+  reportId: string;
+  fullName: string;
+  panNumber: string;
+  dateOfBirth?: string;
+  gender?: string;
+}) {
+  const data = apiData?.data ?? {};
+  const cr = data?.credit_report ?? {};
+  const hdr = cr?.HEADER ?? {};
+
+  const addresses = ensureArray<any>(cr?.['PERSONAL-INFO-VARIATION']?.['ADDRESS-VARIATIONS']?.VARIATION)
+    .map((v) => ({
+      address: String(v?.VALUE ?? 'Not Reported'),
+      category: 'Not Reported',
+      status: 'Not Reported',
+      date_reported: normalizeCrifDate(v?.['REPORTED-DATE'])
+    }));
+
+  const phones = ensureArray<any>(cr?.['PERSONAL-INFO-VARIATION']?.['PHONE-NUMBER-VARIATIONS']?.VARIATION)
+    .map((v) => ({ type: 'Phone', number: String(v?.VALUE ?? 'Not Reported') }));
+
+  if (data?.mobile) {
+    phones.unshift({ type: 'Mobile', number: String(data.mobile) });
+  }
+
+  const emp = cr?.['EMPLOYMENT-DETAILS']?.['EMPLOYMENT-DETAIL'];
+  const employment_information = emp ? [{
+    account_type: String(emp?.['ACCT-TYPE'] ?? 'Not Reported'),
+    date_reported: normalizeCrifDate(emp?.['DATE-REPORTED']),
+    occupation: String(emp?.['OCCUPATION'] ?? 'Not Reported'),
+    income: String(emp?.['INCOME'] ?? 'Not Reported'),
+    frequency: String(emp?.['INCOME-FREQUENCY'] ?? 'Not Reported'),
+    income_indicator: String(emp?.['INCOME-INDICATOR'] ?? 'Not Reported'),
+  }] : [];
+
+  const responses = ensureArray<any>(cr?.RESPONSES?.RESPONSE);
+  const accounts = responses
+    .map(r => r?.['LOAN-DETAILS'])
+    .filter(Boolean)
+    .map((ld: any) => {
+      const dateReported = normalizeCrifDate(ld?.['DATE-REPORTED']);
+      return {
+        member_name: String(ld?.['CREDIT-GUARANTOR'] ?? 'Not Reported'),
+        account_type: String(ld?.['ACCT-TYPE'] ?? 'Not Reported'),
+        account_number: String(ld?.['ACCT-NUMBER'] ?? '---'),
+        ownership: String(ld?.['OWNERSHIP-IND'] ?? 'Not Reported'),
+        credit_limit: '-',
+        sanctioned_amount: String(ld?.['DISBURSED-AMT'] ?? '-'),
+        current_balance: String(ld?.['CURRENT-BAL'] ?? '-'),
+        cash_limit: '-',
+        amount_overdue: String(ld?.['OVERDUE-AMT'] ?? '0'),
+        rate_of_interest: String(ld?.['INTEREST-RATE'] ?? '-'),
+        repayment_tenure: String(ld?.['REPAYMENT-TENURE'] ?? '-'),
+        emi_amount: '-',
+        payment_frequency: 'Monthly',
+        actual_payment_amount: String(ld?.['ACTUAL-PAYMENT'] ?? '-'),
+        dates: {
+          date_opened: normalizeCrifDate(ld?.['DISBURSED-DT']) || '-',
+          date_closed: ld?.['CLOSED-DATE'] ? normalizeCrifDate(ld?.['CLOSED-DATE']) : null,
+          date_of_last_payment: ld?.['LAST-PAYMENT-DATE'] ? normalizeCrifDate(ld?.['LAST-PAYMENT-DATE']) : null,
+          date_reported: dateReported,
+        },
+        payment_start_date: normalizeCrifDate(ld?.['DISBURSED-DT']) || '-',
+        payment_end_date: dateReported,
+        payment_history: [],
+        collateral: {
+          value: '-',
+          type: '-',
+          suit_filed: '-',
+          credit_facility_status: String(ld?.['ACCOUNT-STATUS'] ?? '-'),
+          written_off_total: String(ld?.['WRITE-OFF-AMT'] ?? '-'),
+          written_off_principal: String(ld?.['PRINCIPAL-WRITE-OFF-AMT'] ?? '-'),
+          settlement_amount: String(ld?.['SETTLEMENT-AMT'] ?? '-'),
+        },
+      };
+    });
+
+  const enquiryObj = cr?.['INQUIRY-HISTORY']?.HISTORY;
+  const enquiries = ensureArray<any>(enquiryObj).map((e) => ({
+    member_name: String(e?.['MEMBER-NAME'] ?? 'Not Reported'),
+    date_of_enquiry: normalizeCrifDate(e?.['INQUIRY-DATE']) || '---',
+    enquiry_purpose: String(e?.['PURPOSE'] ?? 'Not Reported'),
+  }));
+
+  const primary = cr?.['ACCOUNTS-SUMMARY']?.['PRIMARY-ACCOUNTS-SUMMARY'] ?? {};
+  const total_accounts = toNum(primary?.['PRIMARY-NUMBER-OF-ACCOUNTS']) || accounts.length;
+  const active_accounts = toNum(primary?.['PRIMARY-ACTIVE-NUMBER-OF-ACCOUNTS']);
+  const closed_accounts = Math.max(0, total_accounts - active_accounts);
+
+  const unified = {
+    header: {
+      bureau_name: ctx.bureauName,
+      control_number: String(hdr?.['REPORT-ID'] ?? ctx.reportId),
+      report_date: normalizeCrifDate(hdr?.['DATE-OF-ISSUE']) || new Date().toISOString().slice(0, 10),
+      credit_score: toNum(data?.credit_score) || null,
+    },
+    personal_information: {
+      full_name: String(ctx.fullName || `${data?.first_name ?? ''} ${data?.last_name ?? ''}` || 'Not Reported').trim().toUpperCase(),
+      date_of_birth: normalizeCrifDate(ctx.dateOfBirth) || '---',
+      gender: ctx.gender || 'Not Reported',
+      identifications: [
+        {
+          type: 'INCOME TAX ID NUMBER (PAN)',
+          number: String(data?.pan ?? ctx.panNumber ?? 'Not Reported'),
+          issue_date: null,
+          expiration_date: null,
+        }
+      ]
+    },
+    contact_information: {
+      addresses,
+      phone_numbers: phones,
+      email_addresses: [] as string[],
+    },
+    employment_information,
+    accounts,
+    enquiries,
+    summary: {
+      total_accounts,
+      active_accounts,
+      closed_accounts,
+      total_overdue_amount: accounts.reduce((sum: number, a: any) => sum + toNum(a.amount_overdue), 0),
+      total_sanctioned_amount: toNum(primary?.['PRIMARY-SANCTIONED-AMOUNT']) || accounts.reduce((sum: number, a: any) => sum + toNum(a.sanctioned_amount), 0),
+      total_current_balance: toNum(primary?.['PRIMARY-CURRENT-BALANCE']) || accounts.reduce((sum: number, a: any) => sum + toNum(a.current_balance), 0),
+    }
+  };
+
+  // Keep original response for audit/debugging without breaking the UI
+  return { ...unified, _raw: apiData };
+}
+
 
 function generateMockCrifData(fullName: string, panNumber: string, dateOfBirth?: string, gender?: string, score?: number) {
   const mockScore = score || Math.floor(Math.random() * (850 - 650 + 1)) + 650;
