@@ -79,10 +79,11 @@ Deno.serve(async (req) => {
       rawCrifData = generateMockCrifData(fullName, panNumber, dateOfBirth, gender, crifScore);
     } else {
       // Determine API URL based on environment setting
-      const baseUrl = apiEnvironment === 'production' 
-        ? 'https://javabackend.idspay.in/api/v1/prod'
-        : 'https://javabackend.idspay.in/api/v1/uat';
-      const crifApiUrl = `${baseUrl}/srv3/credit-report/crif`;
+      // UAT: https://javabackend.idspay.in/api/v1/uat/srv3/credit-report/crif
+      // Production: https://javabackend.idspay.in/api/v1/prod/srv3/credit-report/crif
+      const crifApiUrl = apiEnvironment === 'production' 
+        ? 'https://javabackend.idspay.in/api/v1/prod/srv3/credit-report/crif'
+        : 'https://javabackend.idspay.in/api/v1/uat/srv3/credit-report/crif';
       
       console.log(`Running in ${apiEnvironment} mode - calling IDSpay CRIF API: ${crifApiUrl}`);
 
