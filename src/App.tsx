@@ -19,6 +19,7 @@ import AdminPartners from "./pages/admin/AdminPartners";
 import AdminPartnerLeads from "./pages/admin/AdminPartnerLeads";
 import AdminPartnerLeadDetail from "./pages/admin/AdminPartnerLeadDetail";
 import AdminReports from "./pages/admin/AdminReports";
+import AdminApiLogs from "./pages/admin/AdminApiLogs";
 import AdminRevenue from "./pages/admin/AdminRevenue";
 import AdminSettings from "./pages/admin/AdminSettings";
 
@@ -60,6 +61,7 @@ const App = () => (
             <Route path="/admin/partner-leads" element={<AdminPartnerLeads />} />
             <Route path="/admin/partner-leads/:id" element={<AdminPartnerLeadDetail />} />
             <Route path="/admin/reports" element={<AdminReports />} />
+            <Route path="/admin/api-logs" element={<AdminApiLogs />} />
             <Route path="/admin/revenue" element={<AdminRevenue />} />
             <Route path="/admin/settings" element={<AdminSettings />} />
             

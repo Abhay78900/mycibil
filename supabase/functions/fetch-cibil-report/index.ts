@@ -34,10 +34,17 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const startTime = Date.now();
+  let supabase: any;
+  let userId: string | null = null;
+  let partnerId: string | null = null;
+  let requestPayload: any = {};
+
   try {
     const { reportId, fullName, panNumber, mobileNumber, dateOfBirth, gender } = await req.json() as CibilRequest;
 
-    console.log('[CIBIL] Request received:', { reportId, fullName, panNumber: panNumber?.substring(0, 5) + '***', mobileNumber: mobileNumber?.substring(0, 5) + '***' });
+    requestPayload = { reportId, fullName, panNumber: panNumber?.substring(0, 5) + '***', mobileNumber: mobileNumber?.substring(0, 5) + '***', dateOfBirth, gender };
+    console.log('[CIBIL] Request received:', requestPayload);
 
     // Validate required fields
     if (!reportId || !fullName || !panNumber || !mobileNumber) {
@@ -93,7 +100,17 @@ Deno.serve(async (req) => {
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Get report details for user_id and partner_id
+    const { data: reportInfo } = await supabase
+      .from('credit_reports')
+      .select('user_id, partner_id')
+      .eq('id', reportId)
+      .single();
+
+    userId = reportInfo?.user_id;
+    partnerId = reportInfo?.partner_id;
 
     // Check sandbox mode and API environment
     const { data: sandboxSetting } = await supabase
@@ -113,6 +130,7 @@ Deno.serve(async (req) => {
 
     let cibilScore: number;
     let rawCibilData: any;
+    let responseStatus: number = 200;
 
     if (isSandboxMode) {
       console.log('[CIBIL] Running in sandbox mode - generating mock data');
@@ -157,6 +175,7 @@ Deno.serve(async (req) => {
           body: JSON.stringify(requestBody),
         });
 
+        responseStatus = apiResponse.status;
         console.log('[CIBIL] API response status:', apiResponse.status);
 
         const responseText = await apiResponse.text();
@@ -164,6 +183,22 @@ Deno.serve(async (req) => {
         // Check for HTML error page
         if (responseText.startsWith('<!DOCTYPE') || responseText.startsWith('<html')) {
           console.error('[CIBIL] API returned HTML error page');
+          
+          // Log the error
+          await logBureauApiCall(supabase, {
+            reportId,
+            userId: userId!,
+            partnerId,
+            bureauCode: 'cibil',
+            bureauName: 'TransUnion CIBIL',
+            requestPayload: { ...requestBody, api_key: '[REDACTED]', token_id: '[REDACTED]' },
+            responseJson: { error: 'HTML error page returned' },
+            responseStatus: 502,
+            isSandbox: false,
+            errorMessage: 'CIBIL service unavailable - received error page',
+            processingTimeMs: Date.now() - startTime
+          });
+
           return new Response(
             JSON.stringify({ success: false, error: 'CIBIL service unavailable - received error page' }),
             { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -175,6 +210,21 @@ Deno.serve(async (req) => {
           apiData = JSON.parse(responseText);
         } catch (parseError) {
           console.error('[CIBIL] Failed to parse response:', responseText.substring(0, 500));
+          
+          await logBureauApiCall(supabase, {
+            reportId,
+            userId: userId!,
+            partnerId,
+            bureauCode: 'cibil',
+            bureauName: 'TransUnion CIBIL',
+            requestPayload: { ...requestBody, api_key: '[REDACTED]', token_id: '[REDACTED]' },
+            responseJson: { raw_text: responseText.substring(0, 1000) },
+            responseStatus: 502,
+            isSandbox: false,
+            errorMessage: 'Invalid JSON response from CIBIL API',
+            processingTimeMs: Date.now() - startTime
+          });
+
           return new Response(
             JSON.stringify({ success: false, error: 'Invalid response from CIBIL API' }),
             { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -185,6 +235,21 @@ Deno.serve(async (req) => {
 
         if (!apiResponse.ok || apiData.status === 'error' || apiData.success === false) {
           console.error('[CIBIL] API error:', apiData);
+          
+          await logBureauApiCall(supabase, {
+            reportId,
+            userId: userId!,
+            partnerId,
+            bureauCode: 'cibil',
+            bureauName: 'TransUnion CIBIL',
+            requestPayload: { ...requestBody, api_key: '[REDACTED]', token_id: '[REDACTED]' },
+            responseJson: apiData,
+            responseStatus: apiResponse.status,
+            isSandbox: false,
+            errorMessage: apiData.message || apiData.error || 'CIBIL API request failed',
+            processingTimeMs: Date.now() - startTime
+          });
+
           return new Response(
             JSON.stringify({ success: false, error: apiData.message || apiData.error || 'CIBIL API request failed' }),
             { status: apiResponse.status || 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -200,13 +265,61 @@ Deno.serve(async (req) => {
           dateOfBirth,
           gender,
         });
+
+        // Log successful API call
+        await logBureauApiCall(supabase, {
+          reportId,
+          userId: userId!,
+          partnerId,
+          bureauCode: 'cibil',
+          bureauName: 'TransUnion CIBIL',
+          requestPayload: { ...requestBody, api_key: '[REDACTED]', token_id: '[REDACTED]' },
+          responseJson: apiData,
+          responseStatus: 200,
+          isSandbox: false,
+          errorMessage: null,
+          processingTimeMs: Date.now() - startTime
+        });
+
       } catch (fetchError: any) {
         console.error('[CIBIL] Fetch error:', fetchError);
+        
+        await logBureauApiCall(supabase, {
+          reportId,
+          userId: userId!,
+          partnerId,
+          bureauCode: 'cibil',
+          bureauName: 'TransUnion CIBIL',
+          requestPayload: { ...requestBody, api_key: '[REDACTED]', token_id: '[REDACTED]' },
+          responseJson: null,
+          responseStatus: 503,
+          isSandbox: false,
+          errorMessage: `CIBIL service unavailable: ${fetchError.message}`,
+          processingTimeMs: Date.now() - startTime
+        });
+
         return new Response(
           JSON.stringify({ success: false, error: `CIBIL service unavailable: ${fetchError.message}` }),
           { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
+    }
+
+    // Log sandbox mode call
+    if (isSandboxMode && userId) {
+      await logBureauApiCall(supabase, {
+        reportId,
+        userId,
+        partnerId,
+        bureauCode: 'cibil',
+        bureauName: 'TransUnion CIBIL',
+        requestPayload,
+        responseJson: rawCibilData,
+        responseStatus: 200,
+        isSandbox: true,
+        errorMessage: null,
+        processingTimeMs: Date.now() - startTime
+      });
     }
 
     // Update the credit report
@@ -252,6 +365,40 @@ Deno.serve(async (req) => {
     );
   }
 });
+
+// Log bureau API calls to the database
+async function logBureauApiCall(supabase: any, params: {
+  reportId: string;
+  userId: string;
+  partnerId: string | null;
+  bureauCode: string;
+  bureauName: string;
+  requestPayload: any;
+  responseJson: any;
+  responseStatus: number;
+  isSandbox: boolean;
+  errorMessage: string | null;
+  processingTimeMs: number;
+}) {
+  try {
+    await supabase.from('bureau_api_logs').insert({
+      report_id: params.reportId,
+      user_id: params.userId,
+      partner_id: params.partnerId,
+      bureau_code: params.bureauCode,
+      bureau_name: params.bureauName,
+      request_payload: params.requestPayload,
+      response_json: params.responseJson,
+      response_status: params.responseStatus,
+      is_sandbox: params.isSandbox,
+      error_message: params.errorMessage,
+      processing_time_ms: params.processingTimeMs
+    });
+    console.log(`[${params.bureauCode.toUpperCase()}] API call logged successfully`);
+  } catch (logError) {
+    console.error(`[${params.bureauCode.toUpperCase()}] Failed to log API call:`, logError);
+  }
+}
 
 async function recalculateAverageScore(supabase: any, reportId: string) {
   const { data: report } = await supabase

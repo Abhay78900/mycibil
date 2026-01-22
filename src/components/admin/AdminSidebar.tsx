@@ -1,4 +1,4 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   Users, 
@@ -8,13 +8,15 @@ import {
   LogOut,
   CreditCard,
   FileText,
-  UserPlus
+  UserPlus,
+  FileJson
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
 
-interface AdminSidebarProps {
-  onLogout: () => void;
+export interface AdminSidebarProps {
+  onLogout?: () => void;
 }
 
 const menuItems = [
@@ -23,12 +25,24 @@ const menuItems = [
   { icon: Building2, label: 'Partners', path: '/admin/partners' },
   { icon: UserPlus, label: 'Partner Leads', path: '/admin/partner-leads' },
   { icon: FileText, label: 'Reports', path: '/admin/reports' },
+  { icon: FileJson, label: 'API Logs', path: '/admin/api-logs' },
   { icon: IndianRupee, label: 'Revenue', path: '/admin/revenue' },
   { icon: Settings, label: 'Settings', path: '/admin/settings' },
 ];
 
 export default function AdminSidebar({ onLogout }: AdminSidebarProps) {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { signOut } = useAuth();
+
+  const handleLogout = async () => {
+    if (onLogout) {
+      onLogout();
+    } else {
+      await signOut();
+      navigate('/');
+    }
+  };
 
   return (
     <aside className="w-64 bg-card border-r border-border min-h-screen flex flex-col">
@@ -69,7 +83,7 @@ export default function AdminSidebar({ onLogout }: AdminSidebarProps) {
         <Button 
           variant="ghost" 
           className="w-full justify-start gap-3 text-muted-foreground hover:text-destructive"
-          onClick={onLogout}
+          onClick={handleLogout}
         >
           <LogOut className="w-5 h-5" />
           Logout

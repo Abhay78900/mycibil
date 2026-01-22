@@ -33,10 +33,16 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const startTime = Date.now();
+  let supabase: any;
+  let userId: string | null = null;
+  let partnerId: string | null = null;
+
   try {
     const { reportId, fullName, panNumber, mobileNumber, dateOfBirth, gender } = await req.json() as EquifaxRequest;
+    const requestPayload = { reportId, fullName, panNumber: panNumber?.substring(0, 5) + '***', mobileNumber: mobileNumber?.substring(0, 5) + '***', dateOfBirth, gender };
 
-    console.log('[EQUIFAX] Request received:', { reportId, fullName, panNumber: panNumber?.substring(0, 5) + '***' });
+    console.log('[EQUIFAX] Request received:', requestPayload);
 
     if (!reportId || !fullName || !panNumber || !mobileNumber) {
       return new Response(
@@ -81,7 +87,17 @@ Deno.serve(async (req) => {
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Get report details for user_id and partner_id
+    const { data: reportInfo } = await supabase
+      .from('credit_reports')
+      .select('user_id, partner_id')
+      .eq('id', reportId)
+      .single();
+
+    userId = reportInfo?.user_id;
+    partnerId = reportInfo?.partner_id;
 
     const { data: sandboxSetting } = await supabase
       .from('system_settings')
@@ -105,6 +121,16 @@ Deno.serve(async (req) => {
       console.log('[EQUIFAX] Sandbox mode - generating mock data');
       equifaxScore = Math.floor(Math.random() * (850 - 650 + 1)) + 650;
       rawEquifaxData = generateMockEquifaxData(fullName, normalizedPan, dateOfBirth, gender, equifaxScore);
+
+      if (userId) {
+        await logBureauApiCall(supabase, {
+          reportId, userId, partnerId,
+          bureauCode: 'equifax', bureauName: 'Equifax',
+          requestPayload, responseJson: rawEquifaxData,
+          responseStatus: 200, isSandbox: true,
+          errorMessage: null, processingTimeMs: Date.now() - startTime
+        });
+      }
     } else {
       const equifaxApiUrl = apiEnvironment === 'production'
         ? 'https://javabackend.idspay.in/api/v1/prod/srv3/credit-report/equifax'
@@ -141,6 +167,14 @@ Deno.serve(async (req) => {
 
         if (responseText.startsWith('<!DOCTYPE') || responseText.startsWith('<html')) {
           console.error('[EQUIFAX] HTML error page received');
+          await logBureauApiCall(supabase, {
+            reportId, userId: userId!, partnerId,
+            bureauCode: 'equifax', bureauName: 'Equifax',
+            requestPayload: { ...requestBody, api_key: '[REDACTED]', token_id: '[REDACTED]' },
+            responseJson: { error: 'HTML error page' }, responseStatus: 502,
+            isSandbox: false, errorMessage: 'Equifax service unavailable',
+            processingTimeMs: Date.now() - startTime
+          });
           return new Response(
             JSON.stringify({ success: false, error: 'Equifax service unavailable' }),
             { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -151,6 +185,14 @@ Deno.serve(async (req) => {
         try {
           apiData = JSON.parse(responseText);
         } catch {
+          await logBureauApiCall(supabase, {
+            reportId, userId: userId!, partnerId,
+            bureauCode: 'equifax', bureauName: 'Equifax',
+            requestPayload: { ...requestBody, api_key: '[REDACTED]', token_id: '[REDACTED]' },
+            responseJson: { raw_text: responseText.substring(0, 1000) }, responseStatus: 502,
+            isSandbox: false, errorMessage: 'Invalid JSON response',
+            processingTimeMs: Date.now() - startTime
+          });
           return new Response(
             JSON.stringify({ success: false, error: 'Invalid Equifax response' }),
             { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -158,6 +200,14 @@ Deno.serve(async (req) => {
         }
 
         if (!apiResponse.ok || apiData.status === 'error' || apiData.success === false) {
+          await logBureauApiCall(supabase, {
+            reportId, userId: userId!, partnerId,
+            bureauCode: 'equifax', bureauName: 'Equifax',
+            requestPayload: { ...requestBody, api_key: '[REDACTED]', token_id: '[REDACTED]' },
+            responseJson: apiData, responseStatus: apiResponse.status,
+            isSandbox: false, errorMessage: apiData.message || 'Equifax API failed',
+            processingTimeMs: Date.now() - startTime
+          });
           return new Response(
             JSON.stringify({ success: false, error: apiData.message || 'Equifax API failed' }),
             { status: apiResponse.status || 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -166,15 +216,28 @@ Deno.serve(async (req) => {
 
         equifaxScore = extractEquifaxScore(apiData);
         rawEquifaxData = transformEquifaxToUnifiedReport(apiData, {
-          bureauName: 'Equifax',
-          reportId,
-          fullName,
-          panNumber: normalizedPan,
-          dateOfBirth,
-          gender,
+          bureauName: 'Equifax', reportId, fullName,
+          panNumber: normalizedPan, dateOfBirth, gender,
+        });
+
+        await logBureauApiCall(supabase, {
+          reportId, userId: userId!, partnerId,
+          bureauCode: 'equifax', bureauName: 'Equifax',
+          requestPayload: { ...requestBody, api_key: '[REDACTED]', token_id: '[REDACTED]' },
+          responseJson: apiData, responseStatus: 200,
+          isSandbox: false, errorMessage: null,
+          processingTimeMs: Date.now() - startTime
         });
       } catch (fetchError: any) {
         console.error('[EQUIFAX] Fetch error:', fetchError);
+        await logBureauApiCall(supabase, {
+          reportId, userId: userId!, partnerId,
+          bureauCode: 'equifax', bureauName: 'Equifax',
+          requestPayload: { api_key: '[REDACTED]', token_id: '[REDACTED]' },
+          responseJson: null, responseStatus: 503,
+          isSandbox: false, errorMessage: fetchError.message,
+          processingTimeMs: Date.now() - startTime
+        });
         return new Response(
           JSON.stringify({ success: false, error: `Equifax service unavailable: ${fetchError.message}` }),
           { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -219,6 +282,26 @@ Deno.serve(async (req) => {
     );
   }
 });
+
+async function logBureauApiCall(supabase: any, params: {
+  reportId: string; userId: string; partnerId: string | null;
+  bureauCode: string; bureauName: string; requestPayload: any;
+  responseJson: any; responseStatus: number; isSandbox: boolean;
+  errorMessage: string | null; processingTimeMs: number;
+}) {
+  try {
+    await supabase.from('bureau_api_logs').insert({
+      report_id: params.reportId, user_id: params.userId, partner_id: params.partnerId,
+      bureau_code: params.bureauCode, bureau_name: params.bureauName,
+      request_payload: params.requestPayload, response_json: params.responseJson,
+      response_status: params.responseStatus, is_sandbox: params.isSandbox,
+      error_message: params.errorMessage, processing_time_ms: params.processingTimeMs
+    });
+    console.log(`[${params.bureauCode.toUpperCase()}] API call logged`);
+  } catch (logError) {
+    console.error(`[${params.bureauCode.toUpperCase()}] Failed to log:`, logError);
+  }
+}
 
 async function recalculateAverageScore(supabase: any, reportId: string) {
   const { data: report } = await supabase

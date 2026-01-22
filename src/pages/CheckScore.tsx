@@ -5,12 +5,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Header from '@/components/layout/Header';
 import BureauCard from '@/components/credit/BureauCard';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBureauPricing } from '@/hooks/useBureauPricing';
 import { supabase } from '@/integrations/supabase/client';
-import { ArrowRight, Loader2, Check, CreditCard } from 'lucide-react';
+import { ArrowRight, Loader2, Check, CreditCard, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { z } from 'zod';
 
@@ -18,6 +20,9 @@ const formSchema = z.object({
   fullName: z.string().min(2, 'Name is required'),
   panNumber: z.string().regex(/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/, 'Invalid PAN format'),
   dateOfBirth: z.string().min(1, 'Date of birth is required'),
+  mobileNumber: z.string().regex(/^\d{10}$/, 'Mobile must be 10 digits'),
+  gender: z.enum(['Male', 'Female'], { required_error: 'Gender is required' }),
+  consent: z.literal(true, { errorMap: () => ({ message: 'Consent is required' }) }),
 });
 
 const bureauOptions = [
@@ -36,6 +41,9 @@ export default function CheckScore() {
   const [fullName, setFullName] = useState('');
   const [panNumber, setPanNumber] = useState('');
   const [dateOfBirth, setDateOfBirth] = useState('');
+  const [mobileNumber, setMobileNumber] = useState('');
+  const [gender, setGender] = useState<'Male' | 'Female' | ''>('');
+  const [consent, setConsent] = useState(false);
   const [selectedBureaus, setSelectedBureaus] = useState<string[]>(['cibil', 'experian', 'equifax', 'crif']);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -56,7 +64,14 @@ export default function CheckScore() {
 
   const validateStep1 = () => {
     try {
-      formSchema.parse({ fullName, panNumber, dateOfBirth });
+      formSchema.parse({ 
+        fullName, 
+        panNumber, 
+        dateOfBirth,
+        mobileNumber: mobileNumber.replace(/\s+/g, ''),
+        gender: gender || undefined,
+        consent
+      });
       setErrors({});
       return true;
     } catch (error) {
@@ -90,7 +105,7 @@ export default function CheckScore() {
     const totalPrice = calculateUserTotal(selectedBureaus);
     
     try {
-      // Create the credit report
+      // Create the credit report with new fields
       const { data: report, error } = await supabase
         .from('credit_reports')
         .insert({
@@ -98,6 +113,9 @@ export default function CheckScore() {
           full_name: fullName,
           pan_number: panNumber.toUpperCase(),
           date_of_birth: dateOfBirth,
+          mobile_number: mobileNumber.replace(/\s+/g, ''),
+          gender: gender,
+          consent_given: consent,
           selected_bureaus: selectedBureaus,
           report_status: 'locked',
           amount_paid: totalPrice,
@@ -195,36 +213,96 @@ export default function CheckScore() {
                   )}
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="panNumber">PAN Number</Label>
-                  <Input
-                    id="panNumber"
-                    placeholder="ABCDE1234F"
-                    value={panNumber}
-                    onChange={(e) => setPanNumber(e.target.value.toUpperCase())}
-                    maxLength={10}
-                    className={errors.panNumber ? 'border-destructive' : ''}
-                  />
-                  {errors.panNumber && (
-                    <p className="text-xs text-destructive">{errors.panNumber}</p>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="panNumber">PAN Number</Label>
+                    <Input
+                      id="panNumber"
+                      placeholder="ABCDE1234F"
+                      value={panNumber}
+                      onChange={(e) => setPanNumber(e.target.value.toUpperCase())}
+                      maxLength={10}
+                      className={errors.panNumber ? 'border-destructive' : ''}
+                    />
+                    {errors.panNumber && (
+                      <p className="text-xs text-destructive">{errors.panNumber}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="mobileNumber">Mobile Number</Label>
+                    <Input
+                      id="mobileNumber"
+                      placeholder="9876543210"
+                      value={mobileNumber}
+                      onChange={(e) => setMobileNumber(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                      maxLength={10}
+                      className={errors.mobileNumber ? 'border-destructive' : ''}
+                    />
+                    {errors.mobileNumber && (
+                      <p className="text-xs text-destructive">{errors.mobileNumber}</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="dateOfBirth">Date of Birth</Label>
+                    <Input
+                      id="dateOfBirth"
+                      type="date"
+                      value={dateOfBirth}
+                      onChange={(e) => setDateOfBirth(e.target.value)}
+                      className={errors.dateOfBirth ? 'border-destructive' : ''}
+                    />
+                    {errors.dateOfBirth && (
+                      <p className="text-xs text-destructive">{errors.dateOfBirth}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="gender">Gender</Label>
+                    <Select value={gender} onValueChange={(value: 'Male' | 'Female') => setGender(value)}>
+                      <SelectTrigger className={errors.gender ? 'border-destructive' : ''}>
+                        <SelectValue placeholder="Select gender" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Male">Male</SelectItem>
+                        <SelectItem value="Female">Female</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {errors.gender && (
+                      <p className="text-xs text-destructive">{errors.gender}</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="border rounded-lg p-4 bg-muted/30">
+                  <div className="flex items-start gap-3">
+                    <Checkbox
+                      id="consent"
+                      checked={consent}
+                      onCheckedChange={(checked) => setConsent(checked === true)}
+                      className="mt-0.5"
+                    />
+                    <div className="space-y-1.5">
+                      <Label htmlFor="consent" className="flex items-center gap-2 cursor-pointer font-medium">
+                        <ShieldCheck className="w-4 h-4 text-accent" />
+                        Consent to fetch credit report
+                      </Label>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        I hereby authorize the credit bureaus to access my credit information 
+                        for the purpose of generating a credit report. I understand that this 
+                        inquiry will be recorded in my credit history.
+                      </p>
+                    </div>
+                  </div>
+                  {errors.consent && (
+                    <p className="text-xs text-destructive mt-2">{errors.consent}</p>
                   )}
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="dateOfBirth">Date of Birth</Label>
-                  <Input
-                    id="dateOfBirth"
-                    type="date"
-                    value={dateOfBirth}
-                    onChange={(e) => setDateOfBirth(e.target.value)}
-                    className={errors.dateOfBirth ? 'border-destructive' : ''}
-                  />
-                  {errors.dateOfBirth && (
-                    <p className="text-xs text-destructive">{errors.dateOfBirth}</p>
-                  )}
-                </div>
-
-                <Button onClick={handleContinue} className="w-full" size="lg" variant="hero">
+                <Button onClick={handleContinue} className="w-full" size="lg" variant="hero" disabled={!consent}>
                   Continue
                   <ArrowRight className="w-4 h-4" />
                 </Button>

@@ -14,6 +14,69 @@ export type Database = {
   }
   public: {
     Tables: {
+      bureau_api_logs: {
+        Row: {
+          bureau_code: string
+          bureau_name: string
+          created_at: string
+          error_message: string | null
+          id: string
+          is_sandbox: boolean | null
+          partner_id: string | null
+          processing_time_ms: number | null
+          report_id: string | null
+          request_payload: Json
+          response_json: Json | null
+          response_status: number | null
+          user_id: string
+        }
+        Insert: {
+          bureau_code: string
+          bureau_name: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          is_sandbox?: boolean | null
+          partner_id?: string | null
+          processing_time_ms?: number | null
+          report_id?: string | null
+          request_payload?: Json
+          response_json?: Json | null
+          response_status?: number | null
+          user_id: string
+        }
+        Update: {
+          bureau_code?: string
+          bureau_name?: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          is_sandbox?: boolean | null
+          partner_id?: string | null
+          processing_time_ms?: number | null
+          report_id?: string | null
+          request_payload?: Json
+          response_json?: Json | null
+          response_status?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bureau_api_logs_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bureau_api_logs_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "credit_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bureau_pricing: {
         Row: {
           bureau_code: string
@@ -54,6 +117,7 @@ export type Database = {
           amount_paid: number | null
           average_score: number | null
           cibil_score: number | null
+          consent_given: boolean | null
           created_at: string | null
           credit_cards: Json | null
           crif_score: number | null
@@ -62,9 +126,11 @@ export type Database = {
           equifax_score: number | null
           experian_score: number | null
           full_name: string
+          gender: string | null
           id: string
           improvement_tips: Json | null
           is_high_risk: boolean | null
+          mobile_number: string | null
           pan_number: string
           partner_id: string | null
           raw_cibil_data: Json | null
@@ -83,6 +149,7 @@ export type Database = {
           amount_paid?: number | null
           average_score?: number | null
           cibil_score?: number | null
+          consent_given?: boolean | null
           created_at?: string | null
           credit_cards?: Json | null
           crif_score?: number | null
@@ -91,9 +158,11 @@ export type Database = {
           equifax_score?: number | null
           experian_score?: number | null
           full_name: string
+          gender?: string | null
           id?: string
           improvement_tips?: Json | null
           is_high_risk?: boolean | null
+          mobile_number?: string | null
           pan_number: string
           partner_id?: string | null
           raw_cibil_data?: Json | null
@@ -112,6 +181,7 @@ export type Database = {
           amount_paid?: number | null
           average_score?: number | null
           cibil_score?: number | null
+          consent_given?: boolean | null
           created_at?: string | null
           credit_cards?: Json | null
           crif_score?: number | null
@@ -120,9 +190,11 @@ export type Database = {
           equifax_score?: number | null
           experian_score?: number | null
           full_name?: string
+          gender?: string | null
           id?: string
           improvement_tips?: Json | null
           is_high_risk?: boolean | null
+          mobile_number?: string | null
           pan_number?: string
           partner_id?: string | null
           raw_cibil_data?: Json | null
