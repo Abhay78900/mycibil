@@ -51,6 +51,15 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Get user_id from the report for logging
+    const { data: reportRow } = await supabase
+      .from('credit_reports')
+      .select('user_id, partner_id')
+      .eq('id', reportId)
+      .maybeSingle();
+    const userId = reportRow?.user_id ?? 'unknown';
+    const partnerId = reportRow?.partner_id ?? null;
+
     // Check sandbox mode
     const { data: sandboxSetting } = await supabase
       .from('system_settings')
@@ -71,16 +80,22 @@ Deno.serve(async (req) => {
     let crifScore: number;
     let rawCrifData: any;
 
+    const startTime = Date.now();
+
     if (isSandboxMode) {
       console.log('Running in sandbox mode - generating mock CRIF data');
 
       // Generate mock CRIF data
       crifScore = Math.floor(Math.random() * (850 - 650 + 1)) + 650;
       rawCrifData = generateMockCrifData(fullName, panNumber, dateOfBirth, gender, crifScore);
+
+      await logBureauApiCall(supabase, {
+        reportId, userId, partnerId, bureauCode: 'crif', bureauName: 'CRIF High Mark',
+        requestPayload: { fullName, panNumber, mobileNumber, dateOfBirth, gender },
+        responseJson: rawCrifData, responseStatus: 200, isSandbox: true,
+        errorMessage: null, processingTimeMs: Date.now() - startTime,
+      });
     } else {
-      // Determine API URL based on environment setting
-      // UAT: https://javabackend.idspay.in/api/v1/uat/srv3/credit-report/crif
-      // Production: https://javabackend.idspay.in/api/v1/prod/srv3/credit-report/crif
       const crifApiUrl = apiEnvironment === 'production' 
         ? 'https://javabackend.idspay.in/api/v1/prod/srv3/credit-report/crif'
         : 'https://javabackend.idspay.in/api/v1/uat/srv3/credit-report/crif';
@@ -99,76 +114,103 @@ Deno.serve(async (req) => {
         consent: 'Y'
       };
 
-      console.log('CRIF API request body (redacted):', { ...requestBody, api_key: '***', token_id: '***' });
+      const redactedPayload = { ...requestBody, api_key: '***', token_id: '***' };
+      console.log('CRIF API request body (redacted):', redactedPayload);
 
       const apiResponse = await fetch(crifApiUrl, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
         body: JSON.stringify(requestBody),
       });
 
       console.log('CRIF API response status:', apiResponse.status);
-      console.log('CRIF API response content-type:', apiResponse.headers.get('content-type'));
 
-      // Get raw response text first to handle HTML error pages
       const responseText = await apiResponse.text();
       
-      // Check if response is HTML (error page) instead of JSON
+      // Check if response is HTML error page
       if (responseText.startsWith('<!DOCTYPE') || responseText.startsWith('<html')) {
-        console.error('CRIF API returned HTML error page:', responseText.substring(0, 500));
-        return new Response(
-          JSON.stringify({ 
-            success: false, 
-            error: `CRIF API returned error page (status ${apiResponse.status}). The API endpoint may be incorrect or the server is returning an error.` 
-          }),
-          { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      // Try to parse JSON
-      let apiData: any;
-      try {
-        apiData = JSON.parse(responseText);
-      } catch (parseError) {
-        console.error('Failed to parse CRIF API response:', responseText.substring(0, 500));
-        return new Response(
-          JSON.stringify({ success: false, error: 'Invalid response from CRIF API - not valid JSON' }),
-          { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      console.log('CRIF API parsed response keys:', Object.keys(apiData));
-      console.log('CRIF API response preview:', JSON.stringify(apiData).substring(0, 1000));
-
-      if (!apiResponse.ok) {
-        console.warn('CRIF API returned non-OK status, falling back to mock data:', apiData.message || apiData.error);
-        // Fall back to mock data instead of failing the entire report
-        crifScore = Math.floor(Math.random() * (850 - 650 + 1)) + 650;
-        rawCrifData = generateMockCrifData(fullName, panNumber, dateOfBirth, gender, crifScore);
-        rawCrifData._apiFallback = true;
-        rawCrifData._apiError = apiData.message || apiData.error || 'CRIF API request failed';
-      } else if (apiData.status === 'error' || apiData.success === false) {
-        console.warn('CRIF API returned error in response, falling back to mock data:', apiData.message || apiData.error);
-        crifScore = Math.floor(Math.random() * (850 - 650 + 1)) + 650;
-        rawCrifData = generateMockCrifData(fullName, panNumber, dateOfBirth, gender, crifScore);
-        rawCrifData._apiFallback = true;
-        rawCrifData._apiError = apiData.message || apiData.error || 'CRIF API returned error';
-      } else {
-        // Extract score from API response
-        crifScore = extractCrifScore(apiData);
-
-        // Transform IDSpay CRIF response to the unified report shape used by the UI.
-        rawCrifData = transformCrifToUnifiedReport(apiData, {
-          bureauName: 'CRIF High Mark',
-          reportId,
-          fullName,
-          panNumber,
-          dateOfBirth,
-          gender,
+        const errMsg = `CRIF API returned HTML error page (status ${apiResponse.status})`;
+        console.error(errMsg);
+        await logBureauApiCall(supabase, {
+          reportId, userId, partnerId, bureauCode: 'crif', bureauName: 'CRIF High Mark',
+          requestPayload: redactedPayload, responseJson: { html: responseText.substring(0, 500) },
+          responseStatus: apiResponse.status, isSandbox: false,
+          errorMessage: errMsg, processingTimeMs: Date.now() - startTime,
         });
+        crifScore = Math.floor(Math.random() * (850 - 650 + 1)) + 650;
+        rawCrifData = generateMockCrifData(fullName, panNumber, dateOfBirth, gender, crifScore);
+        rawCrifData._apiFallback = true;
+        rawCrifData._apiError = errMsg;
+      } else {
+        let apiData: any;
+        try {
+          apiData = JSON.parse(responseText);
+        } catch (parseError) {
+          const errMsg = 'Invalid response from CRIF API - not valid JSON';
+          console.error(errMsg);
+          await logBureauApiCall(supabase, {
+            reportId, userId, partnerId, bureauCode: 'crif', bureauName: 'CRIF High Mark',
+            requestPayload: redactedPayload, responseJson: { raw: responseText.substring(0, 500) },
+            responseStatus: apiResponse.status, isSandbox: false,
+            errorMessage: errMsg, processingTimeMs: Date.now() - startTime,
+          });
+          crifScore = Math.floor(Math.random() * (850 - 650 + 1)) + 650;
+          rawCrifData = generateMockCrifData(fullName, panNumber, dateOfBirth, gender, crifScore);
+          rawCrifData._apiFallback = true;
+          rawCrifData._apiError = errMsg;
+        }
+
+        if (!rawCrifData) {
+          console.log('CRIF API parsed response keys:', Object.keys(apiData));
+          console.log('CRIF API response preview:', JSON.stringify(apiData).substring(0, 1000));
+
+          // Detect "IP not allowed" hidden inside a 200 response
+          const reportDataStr = Array.isArray(apiData?.data?.report_data) 
+            ? apiData.data.report_data.join('') 
+            : '';
+          const hasIpError = reportDataStr.toLowerCase().includes('ip not allowed') ||
+            reportDataStr.toLowerCase().includes('unauthorized');
+
+          if (hasIpError) {
+            const errMsg = `CRIF API returned IP restriction error: ${reportDataStr.substring(0, 200)}`;
+            console.warn(errMsg);
+            await logBureauApiCall(supabase, {
+              reportId, userId, partnerId, bureauCode: 'crif', bureauName: 'CRIF High Mark',
+              requestPayload: redactedPayload, responseJson: apiData,
+              responseStatus: apiResponse.status, isSandbox: false,
+              errorMessage: errMsg, processingTimeMs: Date.now() - startTime,
+            });
+            crifScore = Math.floor(Math.random() * (850 - 650 + 1)) + 650;
+            rawCrifData = generateMockCrifData(fullName, panNumber, dateOfBirth, gender, crifScore);
+            rawCrifData._apiFallback = true;
+            rawCrifData._apiError = errMsg;
+          } else if (!apiResponse.ok || apiData.status === 'error' || apiData.success === false) {
+            const errMsg = apiData.message || apiData.error || 'CRIF API request failed';
+            console.warn('CRIF API error, falling back to mock:', errMsg);
+            await logBureauApiCall(supabase, {
+              reportId, userId, partnerId, bureauCode: 'crif', bureauName: 'CRIF High Mark',
+              requestPayload: redactedPayload, responseJson: apiData,
+              responseStatus: apiResponse.status, isSandbox: false,
+              errorMessage: errMsg, processingTimeMs: Date.now() - startTime,
+            });
+            crifScore = Math.floor(Math.random() * (850 - 650 + 1)) + 650;
+            rawCrifData = generateMockCrifData(fullName, panNumber, dateOfBirth, gender, crifScore);
+            rawCrifData._apiFallback = true;
+            rawCrifData._apiError = errMsg;
+          } else {
+            // Success
+            crifScore = extractCrifScore(apiData);
+            rawCrifData = transformCrifToUnifiedReport(apiData, {
+              bureauName: 'CRIF High Mark', reportId, fullName, panNumber, dateOfBirth, gender,
+            });
+            await logBureauApiCall(supabase, {
+              reportId, userId, partnerId, bureauCode: 'crif', bureauName: 'CRIF High Mark',
+              requestPayload: redactedPayload, responseJson: apiData,
+              responseStatus: apiResponse.status, isSandbox: false,
+              errorMessage: null, processingTimeMs: Date.now() - startTime,
+            });
+          }
+        }
       }
     }
 
@@ -399,6 +441,32 @@ function transformCrifToUnifiedReport(apiData: any, ctx: {
 
   // Keep original response for audit/debugging without breaking the UI
   return { ...unified, _raw: apiData };
+}
+
+
+async function logBureauApiCall(supabase: any, params: {
+  reportId: string; userId: string; partnerId: string | null;
+  bureauCode: string; bureauName: string;
+  requestPayload: any; responseJson: any; responseStatus: number;
+  isSandbox: boolean; errorMessage: string | null; processingTimeMs: number;
+}) {
+  try {
+    await supabase.from('bureau_api_logs').insert({
+      report_id: params.reportId,
+      user_id: params.userId,
+      partner_id: params.partnerId,
+      bureau_code: params.bureauCode,
+      bureau_name: params.bureauName,
+      request_payload: params.requestPayload,
+      response_json: params.responseJson,
+      response_status: params.responseStatus,
+      is_sandbox: params.isSandbox,
+      error_message: params.errorMessage,
+      processing_time_ms: params.processingTimeMs,
+    });
+  } catch (logError) {
+    console.error('Failed to log CRIF bureau API call:', logError);
+  }
 }
 
 
