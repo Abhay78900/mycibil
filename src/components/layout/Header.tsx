@@ -1,7 +1,8 @@
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { CreditCard, LogOut, LayoutDashboard, User } from 'lucide-react';
+import { CreditCard, LogOut, LayoutDashboard, User, Menu } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,14 +10,27 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet';
 
 export default function Header() {
   const { user, profile, signOut } = useAuth();
   const navigate = useNavigate();
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleSignOut = async () => {
     await signOut();
     navigate('/');
+  };
+
+  const mobileNav = (to: string) => {
+    setMobileOpen(false);
+    navigate(to);
   };
 
   return (
@@ -29,10 +43,11 @@ export default function Header() {
           <span className="text-xl font-bold text-foreground font-display">CreditCheck</span>
         </Link>
         
-        <div className="flex items-center gap-4">
+        {/* Desktop nav */}
+        <div className="hidden md:flex items-center gap-4">
           {user ? (
             <>
-              <Button onClick={() => navigate('/dashboard')} variant="ghost" className="hidden md:flex gap-2">
+              <Button onClick={() => navigate('/dashboard')} variant="ghost" className="gap-2">
                 <LayoutDashboard className="w-4 h-4" />
                 Dashboard
               </Button>
@@ -70,6 +85,54 @@ export default function Header() {
               </Button>
             </>
           )}
+        </div>
+
+        {/* Mobile hamburger */}
+        <div className="md:hidden">
+          <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <Menu className="w-5 h-5" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-[280px]">
+              <SheetHeader>
+                <SheetTitle className="text-left">Menu</SheetTitle>
+              </SheetHeader>
+              <div className="flex flex-col gap-2 mt-6">
+                {user ? (
+                  <>
+                    <div className="px-2 py-3 mb-2 border-b border-border">
+                      <p className="font-medium text-sm">{profile?.full_name || 'User'}</p>
+                      <p className="text-xs text-muted-foreground">{user.email}</p>
+                    </div>
+                    <Button variant="ghost" className="justify-start gap-3" onClick={() => mobileNav('/dashboard')}>
+                      <LayoutDashboard className="w-4 h-4" />
+                      Dashboard
+                    </Button>
+                    <Button variant="ghost" className="justify-start gap-3" onClick={() => mobileNav('/check-score')}>
+                      <CreditCard className="w-4 h-4" />
+                      Check Score
+                    </Button>
+                    <Button variant="ghost" className="justify-start gap-3 text-destructive" onClick={() => { setMobileOpen(false); handleSignOut(); }}>
+                      <LogOut className="w-4 h-4" />
+                      Sign Out
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button variant="ghost" className="justify-start" onClick={() => mobileNav('/auth')}>
+                      Sign In
+                    </Button>
+                    <Button variant="hero" className="justify-start gap-2" onClick={() => mobileNav('/check-score')}>
+                      <CreditCard className="w-4 h-4" />
+                      Check Score
+                    </Button>
+                  </>
+                )}
+              </div>
+            </SheetContent>
+          </Sheet>
         </div>
       </nav>
     </header>
