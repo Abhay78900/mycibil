@@ -12,6 +12,7 @@ import CheckScore from "./pages/CheckScore";
 import Payment from "./pages/Payment";
 import CreditReport from "./pages/CreditReport";
 import NotFound from "./pages/NotFound";
+import InstallPrompt from "./components/InstallPrompt";
 
 // Admin Pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
