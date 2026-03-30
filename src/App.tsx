@@ -22,6 +22,7 @@ import AdminReports from "./pages/admin/AdminReports";
 import AdminApiLogs from "./pages/admin/AdminApiLogs";
 import AdminRevenue from "./pages/admin/AdminRevenue";
 import AdminSettings from "./pages/admin/AdminSettings";
+import AdminLoanCRM from "./pages/admin/AdminLoanCRM";
 
 // Public Pages
 import BecomePartner from "./pages/BecomePartner";
@@ -65,6 +66,7 @@ const App = () => (
             <Route path="/admin/reports" element={<AdminReports />} />
             <Route path="/admin/api-logs" element={<AdminApiLogs />} />
             <Route path="/admin/revenue" element={<AdminRevenue />} />
+            <Route path="/admin/loan-crm" element={<AdminLoanCRM />} />
             <Route path="/admin/settings" element={<AdminSettings />} />
             
             {/* Partner Routes */}

@@ -9,7 +9,8 @@ import {
   CreditCard,
   FileText,
   UserPlus,
-  FileJson
+  FileJson,
+  Briefcase
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -24,6 +25,7 @@ const menuItems = [
   { icon: Users, label: 'Users', path: '/admin/users' },
   { icon: Building2, label: 'Partners', path: '/admin/partners' },
   { icon: UserPlus, label: 'Partner Leads', path: '/admin/partner-leads' },
+  { icon: Briefcase, label: 'Loan CRM', path: '/admin/loan-crm' },
   { icon: FileText, label: 'Reports', path: '/admin/reports' },
   { icon: FileJson, label: 'API Logs', path: '/admin/api-logs' },
   { icon: IndianRupee, label: 'Revenue', path: '/admin/revenue' },
