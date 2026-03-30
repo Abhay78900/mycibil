@@ -33,7 +33,7 @@ export default function PartnerDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formData, setFormData] = useState({ fullName: '', panNumber: '', dateOfBirth: '', gender: '' });
+  const [formData, setFormData] = useState({ fullName: '', panNumber: '', dateOfBirth: '', gender: '', mobileNumber: '' });
   const [selectedBureaus, setSelectedBureaus] = useState<string[]>(['cibil']);
 
   useEffect(() => {
