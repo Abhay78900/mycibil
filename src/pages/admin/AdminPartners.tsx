@@ -15,7 +15,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Search, Building2, Loader2, Plus, Wallet, Percent, Pencil, Phone, Mail, MapPin, CreditCard, Eye, Lock, Unlock } from 'lucide-react';
+import { Search, Building2, Loader2, Plus, Wallet, Percent, Pencil, Phone, Mail, MapPin, CreditCard, Eye, Lock, Unlock, Users } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 
