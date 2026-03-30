@@ -37,6 +37,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="p-0 w-64">
+              <SheetTitle className="sr-only">Admin Navigation</SheetTitle>
               <div onClick={() => setOpen(false)}>
                 <AdminSidebar onLogout={handleLogout} />
               </div>

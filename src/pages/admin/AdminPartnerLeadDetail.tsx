@@ -478,8 +478,7 @@ export default function AdminPartnerLeadDetail() {
               </Card>
             </div>
           </div>
-        </div>
-      </main>
-    </div>
+      </div>
+    </AdminLayout>
   );
 }

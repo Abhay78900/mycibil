@@ -38,6 +38,7 @@ export default function PartnerLayout({ children, partner }: PartnerLayoutProps)
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="p-0 w-64">
+              <SheetTitle className="sr-only">Partner Navigation</SheetTitle>
               <div onClick={() => setOpen(false)}>
                 <PartnerSidebar partner={partner} onLogout={handleLogout} />
               </div>
