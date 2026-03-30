@@ -207,8 +207,8 @@ export default function AdminPartners() {
                       <TableHead>Wallet</TableHead>
                       <TableHead>Commission</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead>CRM</TableHead>
                       <TableHead>Actions</TableHead>
-                    </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredPartners.map((partner) => (
