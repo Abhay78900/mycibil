@@ -216,11 +216,8 @@ export default function AdminPartnerLeadDetail() {
   if (!lead) return null;
 
   return (
-    <div className="min-h-screen bg-background flex">
-      <AdminSidebar onLogout={handleLogout} />
-      
-      <main className="flex-1 p-6 overflow-auto">
-        <div className="max-w-5xl mx-auto space-y-6">
+    <AdminLayout>
+      <div className="max-w-5xl mx-auto space-y-6">
           {/* Header */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
