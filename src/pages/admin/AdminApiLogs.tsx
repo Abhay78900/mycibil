@@ -454,6 +454,6 @@ export default function AdminApiLogs() {
           )}
         </DialogContent>
       </Dialog>
-    </div>
+    </AdminLayout>
   );
 }
