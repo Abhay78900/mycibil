@@ -313,6 +313,14 @@ export default function AdminPartners() {
               <div className="space-y-2"><Label>Gmail / Email ID</Label><Input type="email" value={formData.partner_email} onChange={(e) => setFormData({ ...formData, partner_email: e.target.value })} placeholder="partner@gmail.com" /></div>
             </div>
             <div className="space-y-2"><Label>Address</Label><Textarea value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} placeholder="Full business address" rows={2} /></div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2"><Label>City</Label><Input value={formData.city} onChange={(e) => setFormData({ ...formData, city: e.target.value })} placeholder="City" /></div>
+              <div className="space-y-2"><Label>Occupation</Label><Input value={formData.occupation} onChange={(e) => setFormData({ ...formData, occupation: e.target.value })} placeholder="Current occupation" /></div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2"><Label>Investment</Label><Input value={formData.investment} onChange={(e) => setFormData({ ...formData, investment: e.target.value })} placeholder="Investment capacity" /></div>
+              <div className="space-y-2"><Label>Contact Person</Label><Input value={formData.contact_person} onChange={(e) => setFormData({ ...formData, contact_person: e.target.value })} placeholder="Contact person name" /></div>
+            </div>
             <div className="space-y-2"><Label>Notes</Label><Textarea value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} placeholder="Internal notes about this partner" rows={2} /></div>
             <div className="space-y-2"><Label>Commission Rate (%)</Label><Input type="number" value={formData.commission_rate} onChange={(e) => setFormData({ ...formData, commission_rate: e.target.value })} /></div>
             <Button className="w-full" onClick={handleAddPartner} disabled={isSaving}>
