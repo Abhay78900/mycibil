@@ -3,8 +3,11 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import PartnerSidebar from '@/components/partner/PartnerSidebar';
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
-import { Building2, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Button } from '@/components/ui/button';
+import { Building2, ChevronRight, ChevronLeft, Bell } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { usePartnerNotifications } from '@/hooks/usePartnerNotifications';
 
 interface PartnerLayoutProps {
   children: React.ReactNode;
