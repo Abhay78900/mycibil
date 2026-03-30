@@ -33,7 +33,7 @@ export default function PartnerDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formData, setFormData] = useState({ fullName: '', panNumber: '', dateOfBirth: '', gender: '' });
+  const [formData, setFormData] = useState({ fullName: '', panNumber: '', dateOfBirth: '', gender: '', mobileNumber: '' });
   const [selectedBureaus, setSelectedBureaus] = useState<string[]>(['cibil']);
 
   useEffect(() => {
@@ -74,7 +74,7 @@ export default function PartnerDashboard() {
     setIsSubmitting(true);
     try {
       const amountPaid = isReportCountMode ? 0 : totalCost;
-      const { data: report, error: reportError } = await supabase.from('credit_reports').insert({ user_id: user?.id, partner_id: partner.id, full_name: formData.fullName, pan_number: formData.panNumber.toUpperCase(), date_of_birth: formData.dateOfBirth || null, selected_bureaus: selectedBureaus, report_status: 'processing', amount_paid: amountPaid }).select().single();
+      const { data: report, error: reportError } = await supabase.from('credit_reports').insert({ user_id: user?.id, partner_id: partner.id, full_name: formData.fullName, pan_number: formData.panNumber.toUpperCase(), date_of_birth: formData.dateOfBirth || null, mobile_number: formData.mobileNumber || null, selected_bureaus: selectedBureaus, report_status: 'processing', amount_paid: amountPaid }).select().single();
       if (reportError) throw reportError;
       if (isReportCountMode) {
         const deductionAmount = reportUnitPrice * bureauCount;
@@ -93,7 +93,7 @@ export default function PartnerDashboard() {
       const averageScore = Math.round(validScores.reduce((a, b) => a + b, 0) / validScores.length);
       await supabase.from('credit_reports').update({ ...scores, average_score: averageScore, report_status: 'unlocked', is_high_risk: averageScore < 650 }).eq('id', report.id);
       toast.success('Report generated successfully!');
-      setFormData({ fullName: '', panNumber: '', dateOfBirth: '', gender: '' });
+      setFormData({ fullName: '', panNumber: '', dateOfBirth: '', gender: '', mobileNumber: '' });
       setSelectedBureaus(['cibil']);
       loadPartnerData();
     } catch (error) { console.error('Error generating report:', error); toast.error('Failed to generate report'); } finally { setIsSubmitting(false); }
@@ -160,6 +160,9 @@ export default function PartnerDashboard() {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2"><Label htmlFor="dob">Date of Birth</Label><Input id="dob" type="date" value={formData.dateOfBirth} onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })} /></div>
+                <div className="space-y-2"><Label htmlFor="mobileNumber">Mobile Number *</Label><Input id="mobileNumber" type="tel" value={formData.mobileNumber} onChange={(e) => setFormData({ ...formData, mobileNumber: e.target.value })} placeholder="10-digit mobile number" maxLength={10} required /></div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Gender *</Label>
                   <RadioGroup value={formData.gender} onValueChange={(value) => setFormData({ ...formData, gender: value })} className="flex gap-4 pt-2">
