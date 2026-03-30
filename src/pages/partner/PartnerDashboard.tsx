@@ -12,8 +12,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { FileText, Users, IndianRupee, TrendingUp, Loader2, Copy, Check } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { FileText, Users, IndianRupee, TrendingUp, Loader2, Copy, Check, Megaphone } from 'lucide-react';
 import { toast } from 'sonner';
+import { usePartnerNotifications } from '@/hooks/usePartnerNotifications';
 
 const bureauOptions = [
   { id: 'cibil', label: 'CIBIL' },
