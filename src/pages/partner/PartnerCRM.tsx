@@ -322,11 +322,36 @@ export default function PartnerCRM() {
           <h1 className="text-2xl lg:text-3xl font-bold text-foreground">Loan CRM</h1>
           <p className="text-muted-foreground mt-1">Manage loan clients and applications</p>
         </div>
-        <div className="flex items-center gap-3">
-          <Badge variant="outline" className="text-lg px-4 py-2"><FileText className="w-4 h-4 mr-2" />{clients.length} Clients</Badge>
-          <Button onClick={() => { setFormData({...emptyForm}); setBankStatementFile(null); setSalarySlipFile(null); setIsAddOpen(true); }}><Plus className="w-4 h-4 mr-2" />Add Client</Button>
+        <div className="flex items-center gap-3 flex-wrap">
+          <Badge variant="outline" className="text-sm px-3 py-1.5">
+            {clients.length} / {maxClientLimit} Clients
+          </Badge>
+          {limitReached ? (
+            <Badge variant="destructive" className="text-sm px-3 py-1.5">
+              <AlertTriangle className="w-3.5 h-3.5 mr-1.5" />Limit Reached
+            </Badge>
+          ) : (
+            <Button onClick={() => { setFormData({...emptyForm}); setBankStatementFile(null); setSalarySlipFile(null); setIsAddOpen(true); }}>
+              <Plus className="w-4 h-4 mr-2" />Add Client
+            </Button>
+          )}
         </div>
       </div>
+
+      {/* Limit warning */}
+      {limitReached && (
+        <Card className="mb-6 border-destructive/50 bg-destructive/5">
+          <CardContent className="pt-4 pb-4">
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="w-5 h-5 text-destructive shrink-0" />
+              <div>
+                <p className="font-semibold text-foreground">Client Limit Reached</p>
+                <p className="text-sm text-muted-foreground">You have reached your maximum client limit of {maxClientLimit}. Please contact Admin to increase your limit.</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Filters */}
       <Card className="mb-6">
