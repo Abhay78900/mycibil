@@ -134,6 +134,7 @@ export default function AdminPartners() {
       address: partner.address || '',
       pan_number: partner.pan_number || '',
       partner_email: partner.email || '',
+      notes: partner.notes || '',
     });
     setIsEditDialogOpen(true);
   };
