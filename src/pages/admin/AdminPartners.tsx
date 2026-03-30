@@ -374,9 +374,10 @@ export default function AdminPartners() {
               <div className="space-y-2"><Label>Contact Person</Label><Input value={formData.contact_person} onChange={(e) => setFormData({ ...formData, contact_person: e.target.value })} placeholder="Contact person name" /></div>
             </div>
             <div className="space-y-2"><Label>Notes</Label><Textarea value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} placeholder="Internal notes about this partner" rows={2} /></div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="space-y-2"><Label>Commission Rate (%)</Label><Input type="number" value={formData.commission_rate} onChange={(e) => setFormData({ ...formData, commission_rate: e.target.value })} /></div>
               <div className="space-y-2"><Label>Wallet Balance (₹)</Label><Input type="number" value={formData.wallet_balance} onChange={(e) => setFormData({ ...formData, wallet_balance: e.target.value })} /></div>
+              <div className="space-y-2"><Label>Max Client Limit</Label><Input type="number" value={formData.max_client_limit} onChange={(e) => setFormData({ ...formData, max_client_limit: e.target.value })} placeholder="50" min={1} /></div>
             </div>
             <div className="space-y-2">
               <Label>Status</Label>
