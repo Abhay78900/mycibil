@@ -7,7 +7,8 @@ import {
   LogOut,
   Plus,
   Building2,
-  FileCheck
+  FileCheck,
+  User
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
