@@ -43,6 +43,13 @@ export default function AdminSettings() {
   const [apiEnvironment, setApiEnvironment] = useState<ApiEnvironment>('uat');
   const [isSavingApiEnvSettings, setIsSavingApiEnvSettings] = useState(false);
 
+  // Broadcast notification state
+  const [notifTitle, setNotifTitle] = useState('');
+  const [notifMessage, setNotifMessage] = useState('');
+  const [isSendingNotif, setIsSendingNotif] = useState(false);
+  const [pastNotifications, setPastNotifications] = useState<any[]>([]);
+  const [notifReadCounts, setNotifReadCounts] = useState<Record<string, number>>({});
+
   useEffect(() => {
     if (!loading && userRole !== 'admin') {
       navigate('/dashboard');
