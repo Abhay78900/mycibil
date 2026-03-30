@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
 import { Menu, CreditCard } from 'lucide-react';
 
 interface AdminLayoutProps {
@@ -37,6 +37,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="p-0 w-64">
+              <SheetTitle className="sr-only">Admin Navigation</SheetTitle>
               <div onClick={() => setOpen(false)}>
                 <AdminSidebar onLogout={handleLogout} />
               </div>

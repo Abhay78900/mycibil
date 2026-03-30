@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import PartnerSidebar from '@/components/partner/PartnerSidebar';
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
 import { Menu, Building2 } from 'lucide-react';
 
 interface PartnerLayoutProps {
@@ -38,6 +38,7 @@ export default function PartnerLayout({ children, partner }: PartnerLayoutProps)
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="p-0 w-64">
+              <SheetTitle className="sr-only">Partner Navigation</SheetTitle>
               <div onClick={() => setOpen(false)}>
                 <PartnerSidebar partner={partner} onLogout={handleLogout} />
               </div>
