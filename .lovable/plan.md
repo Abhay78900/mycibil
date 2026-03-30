@@ -1,84 +1,141 @@
 
 
-## Problem Analysis: API Calls Hit But Report Data Not Showing
+## Mobile & Tablet-First Responsive Overhaul
 
-### Evidence from Database
+### Scope
+Make the entire app responsive across mobile (< 768px), tablet (768-1024px), and desktop (> 1024px). Key areas: Header navigation, Admin/Partner sidebars, all dashboard/table pages, and public-facing pages.
 
-| Report ID | Status | CIBIL Data | Experian Data | Equifax Data | CRIF Data |
-|-----------|--------|-----------|--------------|-------------|----------|
-| cb12e8f3 | unlocked | **NULL** | **NULL** | - | - |
-| 390be177 | unlocked | **NULL** | **NULL** | - | - |
-| 8638c8d8 | unlocked | - | - | - | has data (score: 763) |
+---
 
-All recent CIBIL and Experian calls stored **no raw data** despite the report being unlocked.
+### 1. Header — Mobile Hamburger Menu
+**File:** `src/components/layout/Header.tsx`
 
-### API Log Evidence
+- Add a hamburger menu button (visible on mobile, hidden on `md:` and up)
+- Use a Sheet component (slide-in from right) containing nav links: Dashboard, Sign Out, Check Score
+- Hide "Check Score" and "Sign In" text buttons on mobile; show them inside the hamburger sheet
+- Keep the logo and user avatar visible at all screen sizes
 
-| Bureau | Status | Error | Sandbox? |
-|--------|--------|-------|----------|
-| CIBIL | 404 | `The route api/v1/prod/srv3/credit-report/cibil could not be found` | false |
-| Experian | 422 | `User not authorized to access this service` | false |
-| CRIF | 200 | `IP not allowed` | false |
+---
 
-### Root Cause Chain (3 problems)
+### 2. Admin Sidebar — Collapsible Mobile Drawer
+**Files:** `src/components/admin/AdminSidebar.tsx`, all `src/pages/admin/*.tsx`
 
-**Problem 1: Sandbox mode is enabled but functions hit real APIs anyway**
-- Database shows `sandbox_mode.enabled = true`
-- Yet all recent logs show `is_sandbox: false` — functions are calling real APIs
-- The `api_environment` is set to `production`, and the **production URLs are wrong** (CIBIL returns 404, Experian returns 422)
-- Likely cause: the deployed edge function code may be stale or the JSONB value access has a type mismatch
+- Convert the fixed `w-64` sidebar to:
+  - **Mobile/Tablet:** Hidden by default, toggled via a hamburger button in a top bar. Use Sheet (slide-in from left)
+  - **Desktop (lg+):** Visible as-is
+- Add a shared `AdminLayout` wrapper component that handles the sidebar + trigger + main content layout so each admin page doesn't duplicate sidebar logic
+- The trigger button stays visible at top-left on mobile
 
-**Problem 2: When real APIs fail, edge functions return errors and store nothing**
-- CIBIL returns `{ success: false }` on 404 → `raw_cibil_data` stays NULL
-- Experian returns `{ success: false }` on 422 → `raw_experian_data` stays NULL
-- No fallback mock data is generated on failure
+---
 
-**Problem 3: NULL raw data = fallback to generic template**
-- `FullCreditReportView` checks `raw_cibil_data`, finds NULL
-- Falls back to `generateMockReportFromTemplate()` which shows generic placeholder data
-- This is why the report "shows" but with wrong/generic information
+### 3. Partner Sidebar — Same Pattern
+**Files:** `src/components/partner/PartnerSidebar.tsx`, all `src/pages/partner/*.tsx`
 
-### Solution (3 fixes)
+- Same Sheet-based approach as Admin sidebar
+- Add a `PartnerLayout` wrapper component
 
-#### Fix 1: Add API error fallback in all 4 edge functions
-When real API calls fail (404, 422, IP blocked, etc.), generate sandbox-style mock data instead of returning an error. This ensures `raw_<bureau>_data` is always populated after payment:
+---
 
-```
-// In each edge function, after catching an API error:
-if (apiCallFailed) {
-  console.warn(`[BUREAU] Real API failed, generating fallback mock data`);
-  score = Math.floor(Math.random() * (850 - 650 + 1)) + 650;
-  rawData = generateMockData(...);
-  rawData._apiFallback = true;
-  rawData._apiError = errorMessage;
-  // Continue to save this data to credit_reports
-}
-```
+### 4. Admin & Partner Dashboard Grids
+**Files:** `src/pages/admin/AdminDashboard.tsx`, `src/pages/partner/PartnerDashboard.tsx`
 
-This matches the existing CRIF fallback pattern (memory: `bureau-api-error-resilience`).
+- Stats grids: Change `grid md:grid-cols-2 lg:grid-cols-4` to `grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4`
+- Two-column grids: `grid lg:grid-cols-2` → `grid grid-cols-1 lg:grid-cols-2`
+- Main padding: `p-8` → `p-4 md:p-6 lg:p-8`
+- Partner dashboard form: `grid grid-cols-2` → `grid grid-cols-1 sm:grid-cols-2`
 
-#### Fix 2: Fix sandbox mode detection
-Add explicit logging to diagnose why `sandboxSetting?.value?.enabled` evaluates to `false` when the DB clearly has `true`. Likely fix: cast the value explicitly:
+---
 
-```typescript
-const settingValue = sandboxSetting?.value as Record<string, any> | null;
-const isSandboxMode = settingValue?.enabled === true;
-```
+### 5. Tables — Horizontal Scroll + Responsive
+**Files:** All pages with tables (`AdminUsers`, `AdminPartners`, `AdminReports`, `AdminApiLogs`, `AdminRevenue`, `AdminPartnerLeads`, `PartnerClients`, `PartnerReports`)
 
-#### Fix 3: Fix production API URLs
-The CIBIL production URL returns 404. Either:
-- The correct URL path is different (needs IDSpay documentation check)
-- Or default to UAT until production endpoints are confirmed
+- Wrap all `<table>` elements in `<div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">` to allow horizontal scrolling on mobile without bleeding
+- Add `min-w-[600px]` or similar to tables so they scroll rather than squish
+- Reduce padding in table cells for mobile: `p-3` → `p-2 md:p-3`
 
-### Files to Change
+---
 
+### 6. Landing Page (Index)
+**File:** `src/pages/Index.tsx`
+
+- Already mostly responsive (uses `md:` breakpoints). Minor fixes:
+  - Bureau badges in hero: ensure `flex-wrap` handles small screens (already present)
+  - Pricing grid: `grid md:grid-cols-2 lg:grid-cols-4` → `grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4`
+  - Footer: already uses `flex-col md:flex-row`, but add text centering on mobile
+
+---
+
+### 7. CheckScore & Payment Pages
+**Files:** `src/pages/CheckScore.tsx`, `src/pages/Payment.tsx`
+
+- Already use `max-w-3xl` / `max-w-2xl` with `px-4` — mostly fine
+- Fix: `grid grid-cols-2 gap-4` in Payment → `grid grid-cols-1 sm:grid-cols-2 gap-4`
+
+---
+
+### 8. Credit Report Page
+**File:** `src/pages/CreditReport.tsx`
+
+- Ensure report content doesn't overflow on mobile
+- Add `overflow-x-auto` to any wide report tables/sections
+
+---
+
+### 9. Dialog/Modal Responsiveness
+**File:** `src/pages/admin/AdminApiLogs.tsx` (and others with dialogs)
+
+- `DialogContent className="max-w-4xl"` → add `w-[95vw] max-w-4xl` for mobile
+- Tabs grid `grid-cols-3` is fine (small enough)
+
+---
+
+### 10. Global CSS Fix
+**File:** `src/App.css`
+
+- Remove `#root { max-width: 1280px; padding: 2rem; text-align: center; }` — this is a leftover from Vite boilerplate and interferes with full-width layouts
+- Replace with `#root { width: 100%; }` or remove entirely
+
+---
+
+### Technical Details
+
+**New files to create:**
+- `src/components/layout/AdminLayout.tsx` — wraps AdminSidebar + Sheet trigger + children
+- `src/components/layout/PartnerLayout.tsx` — wraps PartnerSidebar + Sheet trigger + children
+
+**Components used:**
+- `Sheet` from `@/components/ui/sheet` (already exists) for mobile sidebars
+- `Menu` icon from `lucide-react` for hamburger triggers
+- `useIsMobile` from `@/hooks/use-mobile` (already exists)
+
+**Key patterns:**
+- Sidebar hidden on mobile via `hidden lg:flex lg:flex-col`
+- Sheet trigger visible on mobile via `lg:hidden`
+- All fixed `px` widths on content containers → `w-full` with `max-w-*`
+- `overflow-x-auto` on all table containers
+
+**Files modified (total ~18):**
 | File | Change |
 |------|--------|
-| `supabase/functions/fetch-cibil-report/index.ts` | Add fallback mock data on API failure; fix sandbox detection |
-| `supabase/functions/fetch-experian-report/index.ts` | Add fallback mock data on API failure; fix sandbox detection |
-| `supabase/functions/fetch-equifax-report/index.ts` | Add fallback mock data on API failure; fix sandbox detection |
-| `supabase/functions/fetch-crif-report/index.ts` | Verify fallback pattern is consistent; fix sandbox detection |
-
-### Expected Result After Fix
-- Payment flow → bureau edge functions called → even if real APIs fail → mock data stored → `FullCreditReportView` renders actual structured report instead of generic template
+| `src/App.css` | Remove Vite boilerplate max-width/padding |
+| `src/components/layout/Header.tsx` | Add mobile hamburger menu |
+| `src/components/layout/AdminLayout.tsx` | New — responsive sidebar wrapper |
+| `src/components/layout/PartnerLayout.tsx` | New — responsive sidebar wrapper |
+| `src/components/admin/AdminSidebar.tsx` | Minor — remove min-h-screen (layout handles it) |
+| `src/components/partner/PartnerSidebar.tsx` | Minor — remove min-h-screen |
+| `src/pages/admin/AdminDashboard.tsx` | Use AdminLayout, fix grid breakpoints, padding |
+| `src/pages/admin/AdminUsers.tsx` | Use AdminLayout, table overflow |
+| `src/pages/admin/AdminPartners.tsx` | Use AdminLayout, table overflow |
+| `src/pages/admin/AdminReports.tsx` | Use AdminLayout, table overflow |
+| `src/pages/admin/AdminApiLogs.tsx` | Use AdminLayout, table overflow, dialog width |
+| `src/pages/admin/AdminRevenue.tsx` | Use AdminLayout, table overflow |
+| `src/pages/admin/AdminPartnerLeads.tsx` | Use AdminLayout, table overflow |
+| `src/pages/admin/AdminSettings.tsx` | Use AdminLayout, fix grid |
+| `src/pages/partner/PartnerDashboard.tsx` | Use PartnerLayout, fix grids |
+| `src/pages/partner/PartnerGenerate.tsx` | Use PartnerLayout, fix form grids |
+| `src/pages/partner/PartnerClients.tsx` | Use PartnerLayout, table overflow |
+| `src/pages/partner/PartnerReports.tsx` | Use PartnerLayout, table overflow |
+| `src/pages/partner/PartnerWallet.tsx` | Use PartnerLayout, table overflow |
+| `src/pages/Index.tsx` | Fix pricing grid, footer alignment |
+| `src/pages/Payment.tsx` | Fix grid-cols-2 → responsive |
 
