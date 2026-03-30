@@ -245,15 +245,12 @@ export default function AdminSettings() {
   }
 
   return (
-    <div className="flex min-h-screen bg-background">
-      <AdminSidebar onLogout={handleLogout} />
-      
-      <main className="flex-1 p-8 overflow-auto">
-        <div className="max-w-5xl mx-auto">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-foreground">System Settings</h1>
-            <p className="text-muted-foreground mt-1">Configure bureau pricing, wallet modes, and API settings</p>
-          </div>
+    <AdminLayout>
+      <div className="max-w-5xl mx-auto">
+        <div className="mb-6 lg:mb-8">
+          <h1 className="text-2xl lg:text-3xl font-bold text-foreground">System Settings</h1>
+          <p className="text-muted-foreground mt-1">Configure bureau pricing, wallet modes, and API settings</p>
+        </div>
 
           {/* Sandbox/Test Mode Settings */}
           <Card className="mb-8">
