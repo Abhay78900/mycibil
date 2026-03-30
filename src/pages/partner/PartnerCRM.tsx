@@ -443,7 +443,7 @@ export default function PartnerCRM() {
       {/* Add Dialog */}
       <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
         <DialogContent className="w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>Add New Loan Client</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Add New Loan Client</DialogTitle><DialogDescription>Fill in client and loan details</DialogDescription></DialogHeader>
           {renderForm(handleAdd, 'Add Client')}
         </DialogContent>
       </Dialog>
@@ -451,7 +451,7 @@ export default function PartnerCRM() {
       {/* Edit Dialog */}
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
         <DialogContent className="w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>Edit Client</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Edit Client</DialogTitle><DialogDescription>Update client information</DialogDescription></DialogHeader>
           {renderForm(handleUpdate, 'Update Client')}
         </DialogContent>
       </Dialog>
@@ -459,7 +459,7 @@ export default function PartnerCRM() {
       {/* View Dialog */}
       <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
         <DialogContent className="w-[95vw] sm:max-w-lg">
-          <DialogHeader><DialogTitle>Client Details</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Client Details</DialogTitle><DialogDescription>View client and loan information</DialogDescription></DialogHeader>
           {viewingClient && (
             <div className="space-y-3 py-2">
               <div className="grid grid-cols-2 gap-3">
