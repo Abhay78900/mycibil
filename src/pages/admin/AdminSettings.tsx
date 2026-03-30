@@ -106,6 +106,75 @@ export default function AdminSettings() {
     }
   };
 
+  const loadNotifications = async () => {
+    try {
+      const { data: notifs } = await supabase
+        .from('admin_notifications')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(20);
+      setPastNotifications(notifs || []);
+
+      // Get read counts
+      const { data: reads } = await supabase
+        .from('notification_reads')
+        .select('notification_id');
+      const counts: Record<string, number> = {};
+      (reads || []).forEach((r: any) => {
+        counts[r.notification_id] = (counts[r.notification_id] || 0) + 1;
+      });
+      setNotifReadCounts(counts);
+    } catch (err) {
+      console.error('Error loading notifications:', err);
+    }
+  };
+
+  const handleSendNotification = async () => {
+    if (!notifTitle.trim() || !notifMessage.trim()) {
+      toast.error('Please fill in both title and message');
+      return;
+    }
+    setIsSendingNotif(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { error } = await supabase.from('admin_notifications').insert({
+        title: notifTitle.trim(),
+        message: notifMessage.trim(),
+        created_by: user?.id,
+      });
+      if (error) throw error;
+      toast.success('Notification sent to all partners!');
+      setNotifTitle('');
+      setNotifMessage('');
+      loadNotifications();
+    } catch (err) {
+      console.error('Error sending notification:', err);
+      toast.error('Failed to send notification');
+    } finally {
+      setIsSendingNotif(false);
+    }
+  };
+
+  const toggleNotifActive = async (id: string, currentActive: boolean) => {
+    try {
+      await supabase.from('admin_notifications').update({ is_active: !currentActive }).eq('id', id);
+      setPastNotifications(prev => prev.map(n => n.id === id ? { ...n, is_active: !currentActive } : n));
+      toast.success(currentActive ? 'Notification deactivated' : 'Notification activated');
+    } catch (err) {
+      toast.error('Failed to update notification');
+    }
+  };
+
+  const deleteNotification = async (id: string) => {
+    try {
+      await supabase.from('admin_notifications').delete().eq('id', id);
+      setPastNotifications(prev => prev.filter(n => n.id !== id));
+      toast.success('Notification deleted');
+    } catch (err) {
+      toast.error('Failed to delete notification');
+    }
+  };
+
   const handleLogout = async () => {
     await signOut();
     navigate('/');
