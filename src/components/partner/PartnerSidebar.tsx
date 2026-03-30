@@ -9,7 +9,8 @@ import {
   Building2,
   FileCheck,
   User,
-  Briefcase
+  Briefcase,
+  Lock
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
