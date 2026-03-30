@@ -39,6 +39,7 @@ interface Partner {
   investment?: string;
   contact_person?: string;
   is_crm_enabled?: boolean;
+  max_client_limit?: number;
 }
 
 export default function AdminPartners() {
