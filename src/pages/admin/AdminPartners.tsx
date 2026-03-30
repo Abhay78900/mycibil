@@ -144,6 +144,10 @@ export default function AdminPartners() {
       pan_number: partner.pan_number || '',
       partner_email: partner.email || '',
       notes: partner.notes || '',
+      city: partner.city || '',
+      occupation: partner.occupation || '',
+      investment: partner.investment || '',
+      contact_person: partner.contact_person || '',
     });
     setIsEditDialogOpen(true);
   };
