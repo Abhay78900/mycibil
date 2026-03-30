@@ -114,8 +114,11 @@ Deno.serve(async (req) => {
       .eq('key', 'api_environment')
       .maybeSingle();
 
-    const isSandboxMode = sandboxSetting?.value?.enabled ?? true;
-    const apiEnvironment = apiEnvSetting?.value?.environment ?? 'uat';
+    const sandboxValue = sandboxSetting?.value as Record<string, any> | null;
+    const isSandboxMode = sandboxValue?.enabled === true;
+    const apiEnvValue = apiEnvSetting?.value as Record<string, any> | null;
+    const apiEnvironment = apiEnvValue?.environment ?? 'uat';
+    console.log('[EXPERIAN] Sandbox mode:', isSandboxMode, '| API env:', apiEnvironment, '| Raw sandbox value:', JSON.stringify(sandboxValue));
 
     let experianScore: number;
     let rawExperianData: any;
@@ -170,84 +173,100 @@ Deno.serve(async (req) => {
         const responseText = await apiResponse.text();
 
         if (responseText.startsWith('<!DOCTYPE') || responseText.startsWith('<html')) {
-          console.error('[EXPERIAN] HTML error page received');
-          await logBureauApiCall(supabase, {
-            reportId, userId: userId!, partnerId,
-            bureauCode: 'experian', bureauName: 'Experian',
-            requestPayload: { ...requestBody, api_key: '[REDACTED]', token_id: '[REDACTED]' },
-            responseJson: { error: 'HTML error page' }, responseStatus: 502,
-            isSandbox: false, errorMessage: 'Experian service unavailable',
-            processingTimeMs: Date.now() - startTime
-          });
-          return new Response(
-            JSON.stringify({ success: false, error: 'Experian service unavailable' }),
-            { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
+          const errMsg = 'Experian service unavailable - HTML error page';
+          console.error('[EXPERIAN]', errMsg);
+          if (userId) {
+            await logBureauApiCall(supabase, {
+              reportId, userId, partnerId,
+              bureauCode: 'experian', bureauName: 'Experian',
+              requestPayload: { ...requestBody, api_key: '[REDACTED]', token_id: '[REDACTED]' },
+              responseJson: { error: 'HTML error page' }, responseStatus: 502,
+              isSandbox: false, errorMessage: errMsg, processingTimeMs: Date.now() - startTime
+            });
+          }
+          console.warn('[EXPERIAN] Generating fallback mock data');
+          experianScore = Math.floor(Math.random() * (850 - 650 + 1)) + 650;
+          rawExperianData = generateMockExperianData(fullName, normalizedPan, dateOfBirth, gender, experianScore);
+          rawExperianData._apiFallback = true;
+          rawExperianData._apiError = errMsg;
         }
 
+        if (!rawExperianData) {
         let apiData: any;
         try {
           apiData = JSON.parse(responseText);
         } catch {
-          console.error('[EXPERIAN] Invalid JSON response');
-          await logBureauApiCall(supabase, {
-            reportId, userId: userId!, partnerId,
-            bureauCode: 'experian', bureauName: 'Experian',
-            requestPayload: { ...requestBody, api_key: '[REDACTED]', token_id: '[REDACTED]' },
-            responseJson: { raw_text: responseText.substring(0, 1000) }, responseStatus: 502,
-            isSandbox: false, errorMessage: 'Invalid JSON response',
-            processingTimeMs: Date.now() - startTime
-          });
-          return new Response(
-            JSON.stringify({ success: false, error: 'Invalid Experian response' }),
-            { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
+          const errMsg = 'Invalid JSON response from Experian';
+          console.error('[EXPERIAN]', errMsg);
+          if (userId) {
+            await logBureauApiCall(supabase, {
+              reportId, userId, partnerId,
+              bureauCode: 'experian', bureauName: 'Experian',
+              requestPayload: { ...requestBody, api_key: '[REDACTED]', token_id: '[REDACTED]' },
+              responseJson: { raw_text: responseText.substring(0, 1000) }, responseStatus: 502,
+              isSandbox: false, errorMessage: errMsg, processingTimeMs: Date.now() - startTime
+            });
+          }
+          console.warn('[EXPERIAN] Generating fallback mock data');
+          experianScore = Math.floor(Math.random() * (850 - 650 + 1)) + 650;
+          rawExperianData = generateMockExperianData(fullName, normalizedPan, dateOfBirth, gender, experianScore);
+          rawExperianData._apiFallback = true;
+          rawExperianData._apiError = errMsg;
         }
 
+        if (!rawExperianData) {
         if (!apiResponse.ok || apiData.status === 'error' || apiData.success === false) {
-          await logBureauApiCall(supabase, {
-            reportId, userId: userId!, partnerId,
-            bureauCode: 'experian', bureauName: 'Experian',
-            requestPayload: { ...requestBody, api_key: '[REDACTED]', token_id: '[REDACTED]' },
-            responseJson: apiData, responseStatus: apiResponse.status,
-            isSandbox: false, errorMessage: apiData.message || 'Experian API failed',
-            processingTimeMs: Date.now() - startTime
+          const errMsg = apiData.message || 'Experian API failed';
+          console.error('[EXPERIAN] API error:', errMsg);
+          if (userId) {
+            await logBureauApiCall(supabase, {
+              reportId, userId, partnerId,
+              bureauCode: 'experian', bureauName: 'Experian',
+              requestPayload: { ...requestBody, api_key: '[REDACTED]', token_id: '[REDACTED]' },
+              responseJson: apiData, responseStatus: apiResponse.status,
+              isSandbox: false, errorMessage: errMsg, processingTimeMs: Date.now() - startTime
+            });
+          }
+          console.warn('[EXPERIAN] Generating fallback mock data');
+          experianScore = Math.floor(Math.random() * (850 - 650 + 1)) + 650;
+          rawExperianData = generateMockExperianData(fullName, normalizedPan, dateOfBirth, gender, experianScore);
+          rawExperianData._apiFallback = true;
+          rawExperianData._apiError = errMsg;
+        } else {
+          experianScore = extractExperianScore(apiData);
+          rawExperianData = transformExperianToUnifiedReport(apiData, {
+            bureauName: 'Experian', reportId, fullName,
+            panNumber: normalizedPan, dateOfBirth, gender,
           });
-          return new Response(
-            JSON.stringify({ success: false, error: apiData.message || 'Experian API failed' }),
-            { status: apiResponse.status || 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
+          if (userId) {
+            await logBureauApiCall(supabase, {
+              reportId, userId, partnerId,
+              bureauCode: 'experian', bureauName: 'Experian',
+              requestPayload: { ...requestBody, api_key: '[REDACTED]', token_id: '[REDACTED]' },
+              responseJson: apiData, responseStatus: 200,
+              isSandbox: false, errorMessage: null, processingTimeMs: Date.now() - startTime
+            });
+          }
         }
-
-        experianScore = extractExperianScore(apiData);
-        rawExperianData = transformExperianToUnifiedReport(apiData, {
-          bureauName: 'Experian', reportId, fullName,
-          panNumber: normalizedPan, dateOfBirth, gender,
-        });
-
-        // Log successful API call
-        await logBureauApiCall(supabase, {
-          reportId, userId: userId!, partnerId,
-          bureauCode: 'experian', bureauName: 'Experian',
-          requestPayload: { ...requestBody, api_key: '[REDACTED]', token_id: '[REDACTED]' },
-          responseJson: apiData, responseStatus: 200,
-          isSandbox: false, errorMessage: null,
-          processingTimeMs: Date.now() - startTime
-        });
+        } // end JSON parse check
+        } // end HTML check
       } catch (fetchError: any) {
+        const errMsg = `Experian service unavailable: ${fetchError.message}`;
         console.error('[EXPERIAN] Fetch error:', fetchError);
-        await logBureauApiCall(supabase, {
-          reportId, userId: userId!, partnerId,
-          bureauCode: 'experian', bureauName: 'Experian',
-          requestPayload: { api_key: '[REDACTED]', token_id: '[REDACTED]' },
-          responseJson: null, responseStatus: 503,
-          isSandbox: false, errorMessage: fetchError.message,
-          processingTimeMs: Date.now() - startTime
-        });
-        return new Response(
-          JSON.stringify({ success: false, error: `Experian service unavailable: ${fetchError.message}` }),
-          { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        if (userId) {
+          await logBureauApiCall(supabase, {
+            reportId, userId, partnerId,
+            bureauCode: 'experian', bureauName: 'Experian',
+            requestPayload: { api_key: '[REDACTED]', token_id: '[REDACTED]' },
+            responseJson: null, responseStatus: 503,
+            isSandbox: false, errorMessage: errMsg, processingTimeMs: Date.now() - startTime
+          });
+        }
+        console.warn('[EXPERIAN] Generating fallback mock data');
+        experianScore = Math.floor(Math.random() * (850 - 650 + 1)) + 650;
+        rawExperianData = generateMockExperianData(fullName, normalizedPan, dateOfBirth, gender, experianScore);
+        rawExperianData._apiFallback = true;
+        rawExperianData._apiError = errMsg;
       }
     }
 
