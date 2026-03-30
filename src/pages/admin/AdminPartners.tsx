@@ -117,6 +117,10 @@ export default function AdminPartners() {
         pan_number: formData.pan_number.toUpperCase() || null,
         email: formData.partner_email || null,
         notes: formData.notes || null,
+        city: formData.city || null,
+        occupation: formData.occupation || null,
+        investment: formData.investment || null,
+        contact_person: formData.contact_person || null,
       } as any).eq('id', editingPartner.id);
       if (error) throw error;
       toast.success('Partner updated successfully!');
