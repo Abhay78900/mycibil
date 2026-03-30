@@ -12,7 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Loader2, Plus, Phone, Mail, IndianRupee, CalendarDays, Filter, X, Lock, Upload, FileText, Eye, Pencil, Trash2 } from 'lucide-react';
+import { Search, Loader2, Plus, Phone, Mail, IndianRupee, CalendarDays, Filter, X, Lock, Upload, FileText, Eye, Pencil, Trash2, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, isAfter, isBefore, startOfDay, endOfDay, addDays } from 'date-fns';
 
