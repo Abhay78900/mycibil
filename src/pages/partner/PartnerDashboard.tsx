@@ -63,6 +63,24 @@ export default function PartnerDashboard() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const { notifications: unreadNotifs, markAsRead } = usePartnerNotifications(partner?.id || null);
+
+  // Show first unread notification as modal
+  useEffect(() => {
+    if (unreadNotifs.length > 0 && !currentNotif && !notifModalOpen) {
+      setCurrentNotif(unreadNotifs[0]);
+      setNotifModalOpen(true);
+    }
+  }, [unreadNotifs]);
+
+  const handleDismissNotif = async () => {
+    if (currentNotif) {
+      await markAsRead(currentNotif.id);
+      setNotifModalOpen(false);
+      setCurrentNotif(null);
+    }
+  };
+
   const bureauCount = selectedBureaus.length;
   const totalCost = isReportCountMode ? bureauCount : calculatePartnerTotal(selectedBureaus);
   const walletBalance = Number(partner?.wallet_balance || 0);
