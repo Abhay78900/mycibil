@@ -283,7 +283,7 @@ export default function AdminApiLogs() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto -mx-2 px-2 sm:mx-0 sm:px-0">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b">
