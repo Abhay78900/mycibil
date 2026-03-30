@@ -63,6 +63,7 @@ export default function PartnerSidebar({ partner, onLogout }: PartnerSidebarProp
       <nav className="flex-1 p-4 space-y-1">
         {getMenuItems(partner?.is_crm_enabled ?? false).map((item) => {
           const isActive = location.pathname === item.path;
+          const isLocked = 'locked' in item && item.locked;
           return (
             <Link
               key={item.path}
@@ -76,6 +77,7 @@ export default function PartnerSidebar({ partner, onLogout }: PartnerSidebarProp
             >
               <item.icon className="w-5 h-5" />
               {item.label}
+              {isLocked && <Lock className="w-3.5 h-3.5 ml-auto text-destructive" />}
             </Link>
           );
         })}
