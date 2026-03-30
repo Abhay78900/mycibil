@@ -38,6 +38,7 @@ interface Partner {
   occupation?: string;
   investment?: string;
   contact_person?: string;
+  is_crm_enabled?: boolean;
 }
 
 export default function AdminPartners() {
