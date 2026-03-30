@@ -326,12 +326,17 @@ export type Database = {
       }
       partners: {
         Row: {
+          address: string | null
           commission_rate: number | null
           created_at: string | null
+          email: string | null
           franchise_id: string
           id: string
+          mobile: string | null
           name: string
           owner_id: string
+          pan_number: string | null
+          profile_picture_url: string | null
           report_count: number | null
           status: string | null
           total_revenue: number | null
@@ -340,12 +345,17 @@ export type Database = {
           wallet_mode: string | null
         }
         Insert: {
+          address?: string | null
           commission_rate?: number | null
           created_at?: string | null
+          email?: string | null
           franchise_id: string
           id?: string
+          mobile?: string | null
           name: string
           owner_id: string
+          pan_number?: string | null
+          profile_picture_url?: string | null
           report_count?: number | null
           status?: string | null
           total_revenue?: number | null
@@ -354,12 +364,17 @@ export type Database = {
           wallet_mode?: string | null
         }
         Update: {
+          address?: string | null
           commission_rate?: number | null
           created_at?: string | null
+          email?: string | null
           franchise_id?: string
           id?: string
+          mobile?: string | null
           name?: string
           owner_id?: string
+          pan_number?: string | null
+          profile_picture_url?: string | null
           report_count?: number | null
           status?: string | null
           total_revenue?: number | null
