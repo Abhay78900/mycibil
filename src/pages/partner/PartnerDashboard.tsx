@@ -12,8 +12,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { FileText, Users, IndianRupee, TrendingUp, Loader2, Copy, Check } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { FileText, Users, IndianRupee, TrendingUp, Loader2, Copy, Check, Megaphone } from 'lucide-react';
 import { toast } from 'sonner';
+import { usePartnerNotifications } from '@/hooks/usePartnerNotifications';
 
 const bureauOptions = [
   { id: 'cibil', label: 'CIBIL' },
@@ -35,6 +37,8 @@ export default function PartnerDashboard() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({ fullName: '', panNumber: '', dateOfBirth: '', gender: '', mobileNumber: '' });
   const [selectedBureaus, setSelectedBureaus] = useState<string[]>(['cibil']);
+  const [notifModalOpen, setNotifModalOpen] = useState(false);
+  const [currentNotif, setCurrentNotif] = useState<any>(null);
 
   useEffect(() => {
     if (!loading && user) loadPartnerData();
@@ -57,6 +61,24 @@ export default function PartnerDashboard() {
     setCopied(true);
     toast.success('Franchise ID copied!');
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const { notifications: unreadNotifs, markAsRead } = usePartnerNotifications(partner?.id || null);
+
+  // Show first unread notification as modal
+  useEffect(() => {
+    if (unreadNotifs.length > 0 && !currentNotif && !notifModalOpen) {
+      setCurrentNotif(unreadNotifs[0]);
+      setNotifModalOpen(true);
+    }
+  }, [unreadNotifs]);
+
+  const handleDismissNotif = async () => {
+    if (currentNotif) {
+      await markAsRead(currentNotif.id);
+      setNotifModalOpen(false);
+      setCurrentNotif(null);
+    }
   };
 
   const bureauCount = selectedBureaus.length;
@@ -192,6 +214,27 @@ export default function PartnerDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Notification Auto-popup Modal */}
+      <Dialog open={notifModalOpen} onOpenChange={(open) => { if (!open) handleDismissNotif(); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="flex items-center gap-2">
+              <Megaphone className="w-5 h-5 text-primary" />
+              <DialogTitle>{currentNotif?.title}</DialogTitle>
+            </div>
+            <DialogDescription className="text-xs">
+              Admin Announcement • {currentNotif ? new Date(currentNotif.created_at).toLocaleDateString() : ''}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-3">
+            <p className="text-sm text-foreground whitespace-pre-wrap">{currentNotif?.message}</p>
+          </div>
+          <DialogFooter>
+            <Button onClick={handleDismissNotif}>Dismiss</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </PartnerLayout>
   );
 }
