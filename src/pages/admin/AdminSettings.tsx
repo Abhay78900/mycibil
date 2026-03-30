@@ -57,6 +57,7 @@ export default function AdminSettings() {
     }
     if (!loading && userRole === 'admin') {
       loadSettings();
+      loadNotifications();
     }
   }, [userRole, loading, navigate]);
 
