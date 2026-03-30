@@ -62,7 +62,7 @@ export default function PartnerSidebar({ partner, onLogout }: PartnerSidebarProp
       </div>
 
       <nav className="flex-1 p-4 space-y-1">
-        {menuItems.map((item) => {
+        {getMenuItems(partner?.is_crm_enabled ?? false).map((item) => {
           const isActive = location.pathname === item.path;
           return (
             <Link
