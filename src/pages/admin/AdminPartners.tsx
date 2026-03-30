@@ -33,6 +33,10 @@ interface Partner {
   email?: string;
   profile_picture_url?: string;
   notes?: string;
+  city?: string;
+  occupation?: string;
+  investment?: string;
+  contact_person?: string;
 }
 
 export default function AdminPartners() {
@@ -50,6 +54,7 @@ export default function AdminPartners() {
   const [formData, setFormData] = useState({
     name: '', email: '', password: '', commission_rate: '10', wallet_balance: '0', status: 'active',
     mobile: '', address: '', pan_number: '', partner_email: '', notes: '',
+    city: '', occupation: '', investment: '', contact_person: '',
   });
 
   useEffect(() => {
@@ -112,6 +117,10 @@ export default function AdminPartners() {
         pan_number: formData.pan_number.toUpperCase() || null,
         email: formData.partner_email || null,
         notes: formData.notes || null,
+        city: formData.city || null,
+        occupation: formData.occupation || null,
+        investment: formData.investment || null,
+        contact_person: formData.contact_person || null,
       } as any).eq('id', editingPartner.id);
       if (error) throw error;
       toast.success('Partner updated successfully!');
@@ -121,7 +130,7 @@ export default function AdminPartners() {
     } catch (error: any) { toast.error(error.message || 'Failed to update partner'); } finally { setIsSaving(false); }
   };
 
-  const resetFormData = () => setFormData({ name: '', email: '', password: '', commission_rate: '10', wallet_balance: '0', status: 'active', mobile: '', address: '', pan_number: '', partner_email: '', notes: '' });
+  const resetFormData = () => setFormData({ name: '', email: '', password: '', commission_rate: '10', wallet_balance: '0', status: 'active', mobile: '', address: '', pan_number: '', partner_email: '', notes: '', city: '', occupation: '', investment: '', contact_person: '' });
 
   const openEditDialog = (partner: Partner) => {
     setEditingPartner(partner);
@@ -135,6 +144,10 @@ export default function AdminPartners() {
       pan_number: partner.pan_number || '',
       partner_email: partner.email || '',
       notes: partner.notes || '',
+      city: partner.city || '',
+      occupation: partner.occupation || '',
+      investment: partner.investment || '',
+      contact_person: partner.contact_person || '',
     });
     setIsEditDialogOpen(true);
   };
@@ -300,6 +313,14 @@ export default function AdminPartners() {
               <div className="space-y-2"><Label>Gmail / Email ID</Label><Input type="email" value={formData.partner_email} onChange={(e) => setFormData({ ...formData, partner_email: e.target.value })} placeholder="partner@gmail.com" /></div>
             </div>
             <div className="space-y-2"><Label>Address</Label><Textarea value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} placeholder="Full business address" rows={2} /></div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2"><Label>City</Label><Input value={formData.city} onChange={(e) => setFormData({ ...formData, city: e.target.value })} placeholder="City" /></div>
+              <div className="space-y-2"><Label>Occupation</Label><Input value={formData.occupation} onChange={(e) => setFormData({ ...formData, occupation: e.target.value })} placeholder="Current occupation" /></div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2"><Label>Investment</Label><Input value={formData.investment} onChange={(e) => setFormData({ ...formData, investment: e.target.value })} placeholder="Investment capacity" /></div>
+              <div className="space-y-2"><Label>Contact Person</Label><Input value={formData.contact_person} onChange={(e) => setFormData({ ...formData, contact_person: e.target.value })} placeholder="Contact person name" /></div>
+            </div>
             <div className="space-y-2"><Label>Notes</Label><Textarea value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} placeholder="Internal notes about this partner" rows={2} /></div>
             <div className="space-y-2"><Label>Commission Rate (%)</Label><Input type="number" value={formData.commission_rate} onChange={(e) => setFormData({ ...formData, commission_rate: e.target.value })} /></div>
             <Button className="w-full" onClick={handleAddPartner} disabled={isSaving}>
@@ -323,6 +344,14 @@ export default function AdminPartners() {
               <div className="space-y-2"><Label>Email ID</Label><Input type="email" value={formData.partner_email} onChange={(e) => setFormData({ ...formData, partner_email: e.target.value })} placeholder="partner@gmail.com" /></div>
             </div>
             <div className="space-y-2"><Label>Address</Label><Textarea value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} placeholder="Full address" rows={2} /></div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2"><Label>City</Label><Input value={formData.city} onChange={(e) => setFormData({ ...formData, city: e.target.value })} placeholder="City" /></div>
+              <div className="space-y-2"><Label>Occupation</Label><Input value={formData.occupation} onChange={(e) => setFormData({ ...formData, occupation: e.target.value })} placeholder="Current occupation" /></div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2"><Label>Investment</Label><Input value={formData.investment} onChange={(e) => setFormData({ ...formData, investment: e.target.value })} placeholder="Investment capacity" /></div>
+              <div className="space-y-2"><Label>Contact Person</Label><Input value={formData.contact_person} onChange={(e) => setFormData({ ...formData, contact_person: e.target.value })} placeholder="Contact person name" /></div>
+            </div>
             <div className="space-y-2"><Label>Notes</Label><Textarea value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} placeholder="Internal notes about this partner" rows={2} /></div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2"><Label>Commission Rate (%)</Label><Input type="number" value={formData.commission_rate} onChange={(e) => setFormData({ ...formData, commission_rate: e.target.value })} /></div>

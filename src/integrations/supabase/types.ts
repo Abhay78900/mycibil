@@ -327,14 +327,18 @@ export type Database = {
       partners: {
         Row: {
           address: string | null
+          city: string | null
           commission_rate: number | null
+          contact_person: string | null
           created_at: string | null
           email: string | null
           franchise_id: string
           id: string
+          investment: string | null
           mobile: string | null
           name: string
           notes: string | null
+          occupation: string | null
           owner_id: string
           pan_number: string | null
           profile_picture_url: string | null
@@ -347,14 +351,18 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          city?: string | null
           commission_rate?: number | null
+          contact_person?: string | null
           created_at?: string | null
           email?: string | null
           franchise_id: string
           id?: string
+          investment?: string | null
           mobile?: string | null
           name: string
           notes?: string | null
+          occupation?: string | null
           owner_id: string
           pan_number?: string | null
           profile_picture_url?: string | null
@@ -367,14 +375,18 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          city?: string | null
           commission_rate?: number | null
+          contact_person?: string | null
           created_at?: string | null
           email?: string | null
           franchise_id?: string
           id?: string
+          investment?: string | null
           mobile?: string | null
           name?: string
           notes?: string | null
+          occupation?: string | null
           owner_id?: string
           pan_number?: string | null
           profile_picture_url?: string | null
