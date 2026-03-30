@@ -93,7 +93,7 @@ export default function PartnerDashboard() {
       const averageScore = Math.round(validScores.reduce((a, b) => a + b, 0) / validScores.length);
       await supabase.from('credit_reports').update({ ...scores, average_score: averageScore, report_status: 'unlocked', is_high_risk: averageScore < 650 }).eq('id', report.id);
       toast.success('Report generated successfully!');
-      setFormData({ fullName: '', panNumber: '', dateOfBirth: '', gender: '' });
+      setFormData({ fullName: '', panNumber: '', dateOfBirth: '', gender: '', mobileNumber: '' });
       setSelectedBureaus(['cibil']);
       loadPartnerData();
     } catch (error) { console.error('Error generating report:', error); toast.error('Failed to generate report'); } finally { setIsSubmitting(false); }
