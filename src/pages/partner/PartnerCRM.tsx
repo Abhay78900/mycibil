@@ -451,7 +451,7 @@ export default function PartnerCRM() {
       {/* Edit Dialog */}
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
         <DialogContent className="w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>Edit Client</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Edit Client</DialogTitle><DialogDescription>Update client information</DialogDescription></DialogHeader>
           {renderForm(handleUpdate, 'Update Client')}
         </DialogContent>
       </Dialog>
