@@ -458,7 +458,7 @@ export default function PartnerCRM() {
 
       {/* View Dialog */}
       <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
-        <DialogContent className="w-[95vw] sm:max-w-lg">
+        <DialogContent className="w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Client Details</DialogTitle><DialogDescription>View client and loan information</DialogDescription></DialogHeader>
           {viewingClient && (
             <div className="space-y-3 py-2">
