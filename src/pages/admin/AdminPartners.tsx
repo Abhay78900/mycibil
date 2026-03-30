@@ -11,9 +11,11 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, Building2, Loader2, Plus, Wallet, Percent, Pencil } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Search, Building2, Loader2, Plus, Wallet, Percent, Pencil, Phone, Mail, MapPin, CreditCard, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Partner {
@@ -25,6 +27,11 @@ interface Partner {
   commission_rate: number;
   total_revenue: number;
   status: string;
+  mobile?: string;
+  address?: string;
+  pan_number?: string;
+  email?: string;
+  profile_picture_url?: string;
 }
 
 export default function AdminPartners() {
@@ -35,9 +42,14 @@ export default function AdminPartners() {
   const [isLoading, setIsLoading] = useState(true);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [editingPartner, setEditingPartner] = useState<Partner | null>(null);
-  const [formData, setFormData] = useState({ name: '', email: '', password: '', commission_rate: '10', wallet_balance: '0', status: 'active' });
+  const [viewingPartner, setViewingPartner] = useState<Partner | null>(null);
+  const [formData, setFormData] = useState({
+    name: '', email: '', password: '', commission_rate: '10', wallet_balance: '0', status: 'active',
+    mobile: '', address: '', pan_number: '', partner_email: '',
+  });
 
   useEffect(() => {
     if (!loading && userRole !== 'admin') { navigate('/dashboard'); return; }
@@ -47,7 +59,7 @@ export default function AdminPartners() {
   const loadPartners = async () => {
     try {
       const { data } = await supabase.from('partners').select('*').order('created_at', { ascending: false });
-      setPartners(data || []);
+      setPartners((data as any[]) || []);
     } catch (error) { console.error('Error loading partners:', error); } finally { setIsLoading(false); }
   };
 
@@ -71,16 +83,34 @@ export default function AdminPartners() {
       if (!response.ok) throw new Error(result.error || 'Failed to create partner');
       toast.success('Partner added successfully!');
       setIsAddDialogOpen(false);
-      setFormData({ name: '', email: '', password: '', commission_rate: '10', wallet_balance: '0', status: 'active' });
+      resetFormData();
       loadPartners();
     } catch (error: any) { toast.error(error.message || 'Failed to add partner'); } finally { setIsSaving(false); }
   };
 
   const handleEditPartner = async () => {
     if (!editingPartner) return;
+    if (formData.pan_number && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(formData.pan_number.toUpperCase())) {
+      toast.error('Enter a valid PAN (e.g. ABCDE1234F)'); return;
+    }
+    if (formData.partner_email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.partner_email)) {
+      toast.error('Enter a valid email address'); return;
+    }
+    if (formData.mobile && !/^[6-9]\d{9}$/.test(formData.mobile)) {
+      toast.error('Enter a valid 10-digit mobile number'); return;
+    }
     setIsSaving(true);
     try {
-      const { error } = await supabase.from('partners').update({ name: formData.name, commission_rate: parseFloat(formData.commission_rate), wallet_balance: parseFloat(formData.wallet_balance), status: formData.status }).eq('id', editingPartner.id);
+      const { error } = await supabase.from('partners').update({
+        name: formData.name,
+        commission_rate: parseFloat(formData.commission_rate),
+        wallet_balance: parseFloat(formData.wallet_balance),
+        status: formData.status,
+        mobile: formData.mobile || null,
+        address: formData.address || null,
+        pan_number: formData.pan_number.toUpperCase() || null,
+        email: formData.partner_email || null,
+      } as any).eq('id', editingPartner.id);
       if (error) throw error;
       toast.success('Partner updated successfully!');
       setIsEditDialogOpen(false);
@@ -89,14 +119,28 @@ export default function AdminPartners() {
     } catch (error: any) { toast.error(error.message || 'Failed to update partner'); } finally { setIsSaving(false); }
   };
 
+  const resetFormData = () => setFormData({ name: '', email: '', password: '', commission_rate: '10', wallet_balance: '0', status: 'active', mobile: '', address: '', pan_number: '', partner_email: '' });
+
   const openEditDialog = (partner: Partner) => {
     setEditingPartner(partner);
-    setFormData({ name: partner.name, email: '', password: '', commission_rate: String(partner.commission_rate), wallet_balance: String(partner.wallet_balance), status: partner.status || 'active' });
+    setFormData({
+      name: partner.name, email: '', password: '',
+      commission_rate: String(partner.commission_rate),
+      wallet_balance: String(partner.wallet_balance),
+      status: partner.status || 'active',
+      mobile: partner.mobile || '',
+      address: partner.address || '',
+      pan_number: partner.pan_number || '',
+      partner_email: partner.email || '',
+    });
     setIsEditDialogOpen(true);
   };
 
   const filteredPartners = partners.filter(partner =>
-    partner.name?.toLowerCase().includes(searchTerm.toLowerCase()) || partner.franchise_id?.toLowerCase().includes(searchTerm.toLowerCase())
+    partner.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    partner.franchise_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    partner.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    partner.pan_number?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   if (loading || isLoading) {
@@ -114,7 +158,7 @@ export default function AdminPartners() {
           <Badge variant="outline" className="text-lg px-4 py-2">
             <Building2 className="w-4 h-4 mr-2" />{partners.length} Partners
           </Badge>
-          <Button onClick={() => { setFormData({ name: '', email: '', password: '', commission_rate: '10', wallet_balance: '0', status: 'active' }); setIsAddDialogOpen(true); }}>
+          <Button onClick={() => { resetFormData(); setIsAddDialogOpen(true); }}>
             <Plus className="w-4 h-4 mr-2" />Add Partner
           </Button>
         </div>
@@ -131,19 +175,19 @@ export default function AdminPartners() {
             <CardHeader>
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input placeholder="Search partners..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" />
+                <Input placeholder="Search by name, franchise ID, email, PAN..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" />
               </div>
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
-                <Table className="min-w-[700px]">
+                <Table className="min-w-[800px]">
                   <TableHeader>
                     <TableRow>
                       <TableHead>Partner</TableHead>
                       <TableHead>Franchise ID</TableHead>
-                      <TableHead>Wallet Balance</TableHead>
+                      <TableHead>Contact</TableHead>
+                      <TableHead>Wallet</TableHead>
                       <TableHead>Commission</TableHead>
-                      <TableHead>Revenue</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
@@ -153,16 +197,32 @@ export default function AdminPartners() {
                       <TableRow key={partner.id}>
                         <TableCell>
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center shrink-0"><Building2 className="w-5 h-5 text-secondary-foreground" /></div>
-                            <span className="font-medium">{partner.name}</span>
+                            <Avatar className="w-10 h-10 shrink-0">
+                              <AvatarImage src={partner.profile_picture_url || undefined} alt={partner.name} />
+                              <AvatarFallback className="bg-secondary text-secondary-foreground">{partner.name?.charAt(0)?.toUpperCase()}</AvatarFallback>
+                            </Avatar>
+                            <div className="min-w-0">
+                              <span className="font-medium block truncate">{partner.name}</span>
+                              {partner.email && <span className="text-xs text-muted-foreground truncate block">{partner.email}</span>}
+                            </div>
                           </div>
                         </TableCell>
                         <TableCell><span className="font-mono text-sm bg-accent px-2 py-1 rounded">{partner.franchise_id}</span></TableCell>
+                        <TableCell>
+                          <div className="space-y-1">
+                            {partner.mobile && <div className="flex items-center gap-1 text-sm"><Phone className="w-3 h-3 text-muted-foreground" />{partner.mobile}</div>}
+                            {partner.pan_number && <div className="flex items-center gap-1 text-sm"><CreditCard className="w-3 h-3 text-muted-foreground" />{partner.pan_number}</div>}
+                          </div>
+                        </TableCell>
                         <TableCell><div className="flex items-center gap-2"><Wallet className="w-4 h-4 text-primary" /><span className="font-bold">₹{Number(partner.wallet_balance || 0).toLocaleString()}</span></div></TableCell>
                         <TableCell><div className="flex items-center gap-2"><Percent className="w-4 h-4 text-muted-foreground" /><span>{partner.commission_rate}%</span></div></TableCell>
-                        <TableCell><span className="font-bold text-green-600">₹{Number(partner.total_revenue || 0).toLocaleString()}</span></TableCell>
                         <TableCell><Badge variant={partner.status === 'active' ? 'default' : 'secondary'}>{partner.status?.toUpperCase()}</Badge></TableCell>
-                        <TableCell><Button variant="ghost" size="sm" onClick={() => openEditDialog(partner)}><Pencil className="w-4 h-4" /></Button></TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            <Button variant="ghost" size="sm" onClick={() => { setViewingPartner(partner); setIsViewDialogOpen(true); }}><Eye className="w-4 h-4" /></Button>
+                            <Button variant="ghost" size="sm" onClick={() => openEditDialog(partner)}><Pencil className="w-4 h-4" /></Button>
+                          </div>
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -175,6 +235,49 @@ export default function AdminPartners() {
 
         <TabsContent value="wallets"><PartnerWalletManagement /></TabsContent>
       </Tabs>
+
+      {/* View Partner Dialog */}
+      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+        <DialogContent className="w-[95vw] sm:max-w-lg">
+          <DialogHeader><DialogTitle>Partner Details</DialogTitle></DialogHeader>
+          {viewingPartner && (
+            <div className="space-y-4 py-4">
+              <div className="flex items-center gap-4">
+                <Avatar className="w-20 h-20 border-4 border-secondary">
+                  <AvatarImage src={viewingPartner.profile_picture_url || undefined} alt={viewingPartner.name} />
+                  <AvatarFallback className="text-2xl bg-secondary text-secondary-foreground">{viewingPartner.name?.charAt(0)?.toUpperCase()}</AvatarFallback>
+                </Avatar>
+                <div>
+                  <h3 className="text-lg font-bold text-foreground">{viewingPartner.name}</h3>
+                  <p className="text-sm font-mono text-muted-foreground">{viewingPartner.franchise_id}</p>
+                  <Badge variant={viewingPartner.status === 'active' ? 'default' : 'secondary'} className="mt-1">{viewingPartner.status?.toUpperCase()}</Badge>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <DetailRow icon={<Phone className="w-4 h-4" />} label="Mobile" value={viewingPartner.mobile || 'Not provided'} />
+                <DetailRow icon={<Mail className="w-4 h-4" />} label="Email" value={viewingPartner.email || 'Not provided'} />
+                <DetailRow icon={<CreditCard className="w-4 h-4" />} label="PAN" value={viewingPartner.pan_number || 'Not provided'} />
+                <DetailRow icon={<Wallet className="w-4 h-4" />} label="Wallet" value={`₹${Number(viewingPartner.wallet_balance || 0).toLocaleString()}`} />
+                <DetailRow icon={<Percent className="w-4 h-4" />} label="Commission" value={`${viewingPartner.commission_rate}%`} />
+              </div>
+              {viewingPartner.address && (
+                <div className="p-3 bg-accent/50 rounded-lg">
+                  <div className="flex items-start gap-2">
+                    <MapPin className="w-4 h-4 text-muted-foreground mt-0.5" />
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Address</p>
+                      <p className="text-sm text-foreground">{viewingPartner.address}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              <Button className="w-full" onClick={() => { setIsViewDialogOpen(false); openEditDialog(viewingPartner); }}>
+                <Pencil className="w-4 h-4 mr-2" />Edit Partner
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Add Partner Dialog */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
@@ -194,12 +297,22 @@ export default function AdminPartners() {
 
       {/* Edit Partner Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="w-[95vw] sm:max-w-md">
+        <DialogContent className="w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Edit Partner</DialogTitle></DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="space-y-2"><Label>Partner Name</Label><Input value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} /></div>
-            <div className="space-y-2"><Label>Commission Rate (%)</Label><Input type="number" value={formData.commission_rate} onChange={(e) => setFormData({ ...formData, commission_rate: e.target.value })} /></div>
-            <div className="space-y-2"><Label>Wallet Balance (₹)</Label><Input type="number" value={formData.wallet_balance} onChange={(e) => setFormData({ ...formData, wallet_balance: e.target.value })} /></div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2"><Label>Partner Name</Label><Input value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} /></div>
+              <div className="space-y-2"><Label>Mobile Number</Label><Input type="tel" value={formData.mobile} onChange={(e) => setFormData({ ...formData, mobile: e.target.value })} placeholder="10-digit number" maxLength={10} /></div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2"><Label>PAN Card Number</Label><Input value={formData.pan_number} onChange={(e) => setFormData({ ...formData, pan_number: e.target.value.toUpperCase() })} placeholder="ABCDE1234F" maxLength={10} /></div>
+              <div className="space-y-2"><Label>Email ID</Label><Input type="email" value={formData.partner_email} onChange={(e) => setFormData({ ...formData, partner_email: e.target.value })} placeholder="partner@gmail.com" /></div>
+            </div>
+            <div className="space-y-2"><Label>Address</Label><Textarea value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} placeholder="Full address" rows={2} /></div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2"><Label>Commission Rate (%)</Label><Input type="number" value={formData.commission_rate} onChange={(e) => setFormData({ ...formData, commission_rate: e.target.value })} /></div>
+              <div className="space-y-2"><Label>Wallet Balance (₹)</Label><Input type="number" value={formData.wallet_balance} onChange={(e) => setFormData({ ...formData, wallet_balance: e.target.value })} /></div>
+            </div>
             <div className="space-y-2">
               <Label>Status</Label>
               <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
@@ -218,5 +331,17 @@ export default function AdminPartners() {
         </DialogContent>
       </Dialog>
     </AdminLayout>
+  );
+}
+
+function DetailRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+  return (
+    <div className="flex items-center gap-2 p-2 bg-accent/30 rounded-lg">
+      <span className="text-muted-foreground">{icon}</span>
+      <div className="min-w-0">
+        <p className="text-xs text-muted-foreground">{label}</p>
+        <p className="text-sm font-medium text-foreground truncate">{value}</p>
+      </div>
+    </div>
   );
 }

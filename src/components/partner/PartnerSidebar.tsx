@@ -7,7 +7,8 @@ import {
   LogOut,
   Plus,
   Building2,
-  FileCheck
+  FileCheck,
+  User
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -24,6 +25,7 @@ const menuItems = [
   { icon: Users, label: 'Clients', path: '/partner/clients' },
   { icon: FileText, label: 'Reports', path: '/partner/reports' },
   { icon: Wallet, label: 'Wallet', path: '/partner/wallet' },
+  { icon: User, label: 'Profile', path: '/partner/profile' },
 ];
 
 export default function PartnerSidebar({ partner, onLogout }: PartnerSidebarProps) {
