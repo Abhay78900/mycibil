@@ -10,9 +10,9 @@ import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Loader2, Plus, Phone, Mail, IndianRupee, CalendarDays, Filter, X, Lock, Upload, FileText, Eye, Pencil, Trash2 } from 'lucide-react';
+import { Search, Loader2, Plus, Phone, Mail, IndianRupee, CalendarDays, Filter, X, Lock, Upload, FileText, Eye, Pencil, Trash2, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, isAfter, isBefore, startOfDay, endOfDay, addDays } from 'date-fns';
 
@@ -239,13 +239,21 @@ export default function PartnerCRM() {
     return <div className="min-h-screen flex items-center justify-center bg-background"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
   }
 
+  const maxClientLimit = (partner as any)?.max_client_limit ?? 50;
+  const limitReached = clients.length >= maxClientLimit;
+
   if (!crmEnabled) {
     return (
       <PartnerLayout partner={partner}>
         <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
-          <Lock className="w-16 h-16 text-muted-foreground mb-4" />
+          <div className="w-20 h-20 rounded-full bg-destructive/10 flex items-center justify-center mb-6">
+            <Lock className="w-10 h-10 text-destructive" />
+          </div>
           <h2 className="text-2xl font-bold text-foreground mb-2">CRM Access Locked</h2>
-          <p className="text-muted-foreground max-w-md">Your CRM module is currently disabled. Please contact the Admin to enable CRM access for your account.</p>
+          <p className="text-muted-foreground max-w-md mb-4">This feature is currently locked. Please contact Admin to unlock CRM access for your account.</p>
+          <Badge variant="destructive" className="text-sm px-4 py-2">
+            <Lock className="w-3.5 h-3.5 mr-2" />Feature Disabled by Admin
+          </Badge>
         </div>
       </PartnerLayout>
     );
@@ -314,11 +322,36 @@ export default function PartnerCRM() {
           <h1 className="text-2xl lg:text-3xl font-bold text-foreground">Loan CRM</h1>
           <p className="text-muted-foreground mt-1">Manage loan clients and applications</p>
         </div>
-        <div className="flex items-center gap-3">
-          <Badge variant="outline" className="text-lg px-4 py-2"><FileText className="w-4 h-4 mr-2" />{clients.length} Clients</Badge>
-          <Button onClick={() => { setFormData({...emptyForm}); setBankStatementFile(null); setSalarySlipFile(null); setIsAddOpen(true); }}><Plus className="w-4 h-4 mr-2" />Add Client</Button>
+        <div className="flex items-center gap-3 flex-wrap">
+          <Badge variant="outline" className="text-sm px-3 py-1.5">
+            {clients.length} / {maxClientLimit} Clients
+          </Badge>
+          {limitReached ? (
+            <Badge variant="destructive" className="text-sm px-3 py-1.5">
+              <AlertTriangle className="w-3.5 h-3.5 mr-1.5" />Limit Reached
+            </Badge>
+          ) : (
+            <Button onClick={() => { setFormData({...emptyForm}); setBankStatementFile(null); setSalarySlipFile(null); setIsAddOpen(true); }}>
+              <Plus className="w-4 h-4 mr-2" />Add Client
+            </Button>
+          )}
         </div>
       </div>
+
+      {/* Limit warning */}
+      {limitReached && (
+        <Card className="mb-6 border-destructive/50 bg-destructive/5">
+          <CardContent className="pt-4 pb-4">
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="w-5 h-5 text-destructive shrink-0" />
+              <div>
+                <p className="font-semibold text-foreground">Client Limit Reached</p>
+                <p className="text-sm text-muted-foreground">You have reached your maximum client limit of {maxClientLimit}. Please contact Admin to increase your limit.</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Filters */}
       <Card className="mb-6">

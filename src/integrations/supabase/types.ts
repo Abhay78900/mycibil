@@ -416,6 +416,7 @@ export type Database = {
           id: string
           investment: string | null
           is_crm_enabled: boolean
+          max_client_limit: number
           mobile: string | null
           name: string
           notes: string | null
@@ -441,6 +442,7 @@ export type Database = {
           id?: string
           investment?: string | null
           is_crm_enabled?: boolean
+          max_client_limit?: number
           mobile?: string | null
           name: string
           notes?: string | null
@@ -466,6 +468,7 @@ export type Database = {
           id?: string
           investment?: string | null
           is_crm_enabled?: boolean
+          max_client_limit?: number
           mobile?: string | null
           name?: string
           notes?: string | null

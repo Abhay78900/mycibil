@@ -9,7 +9,8 @@ import {
   Building2,
   FileCheck,
   User,
-  Briefcase
+  Briefcase,
+  Lock
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -27,11 +28,9 @@ const getMenuItems = (isCrmEnabled: boolean) => {
     { icon: Users, label: 'Clients', path: '/partner/clients' },
     { icon: FileText, label: 'Reports', path: '/partner/reports' },
     { icon: Wallet, label: 'Wallet', path: '/partner/wallet' },
+    { icon: Briefcase, label: 'Loan CRM', path: '/partner/crm', locked: !isCrmEnabled },
+    { icon: User, label: 'Profile', path: '/partner/profile' },
   ];
-  if (isCrmEnabled) {
-    items.push({ icon: Briefcase, label: 'Loan CRM', path: '/partner/crm' });
-  }
-  items.push({ icon: User, label: 'Profile', path: '/partner/profile' });
   return items;
 };
 
@@ -64,6 +63,7 @@ export default function PartnerSidebar({ partner, onLogout }: PartnerSidebarProp
       <nav className="flex-1 p-4 space-y-1">
         {getMenuItems(partner?.is_crm_enabled ?? false).map((item) => {
           const isActive = location.pathname === item.path;
+          const isLocked = 'locked' in item && item.locked;
           return (
             <Link
               key={item.path}
@@ -77,6 +77,7 @@ export default function PartnerSidebar({ partner, onLogout }: PartnerSidebarProp
             >
               <item.icon className="w-5 h-5" />
               {item.label}
+              {isLocked && <Lock className="w-3.5 h-3.5 ml-auto text-destructive" />}
             </Link>
           );
         })}

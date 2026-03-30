@@ -1,0 +1,1 @@
+ALTER TABLE public.partners ADD COLUMN IF NOT EXISTS max_client_limit integer NOT NULL DEFAULT 50;

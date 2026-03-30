@@ -39,6 +39,7 @@ interface Partner {
   investment?: string;
   contact_person?: string;
   is_crm_enabled?: boolean;
+  max_client_limit?: number;
 }
 
 export default function AdminPartners() {
@@ -57,6 +58,7 @@ export default function AdminPartners() {
     name: '', email: '', password: '', commission_rate: '10', wallet_balance: '0', status: 'active',
     mobile: '', address: '', pan_number: '', partner_email: '', notes: '',
     city: '', occupation: '', investment: '', contact_person: '',
+    max_client_limit: '50',
   });
 
   useEffect(() => {
@@ -123,6 +125,7 @@ export default function AdminPartners() {
         occupation: formData.occupation || null,
         investment: formData.investment || null,
         contact_person: formData.contact_person || null,
+        max_client_limit: parseInt(formData.max_client_limit) || 50,
       } as any).eq('id', editingPartner.id);
       if (error) throw error;
       toast.success('Partner updated successfully!');
@@ -132,7 +135,7 @@ export default function AdminPartners() {
     } catch (error: any) { toast.error(error.message || 'Failed to update partner'); } finally { setIsSaving(false); }
   };
 
-  const resetFormData = () => setFormData({ name: '', email: '', password: '', commission_rate: '10', wallet_balance: '0', status: 'active', mobile: '', address: '', pan_number: '', partner_email: '', notes: '', city: '', occupation: '', investment: '', contact_person: '' });
+  const resetFormData = () => setFormData({ name: '', email: '', password: '', commission_rate: '10', wallet_balance: '0', status: 'active', mobile: '', address: '', pan_number: '', partner_email: '', notes: '', city: '', occupation: '', investment: '', contact_person: '', max_client_limit: '50' });
 
   const openEditDialog = (partner: Partner) => {
     setEditingPartner(partner);
@@ -150,6 +153,7 @@ export default function AdminPartners() {
       occupation: partner.occupation || '',
       investment: partner.investment || '',
       contact_person: partner.contact_person || '',
+      max_client_limit: String((partner as any).max_client_limit ?? 50),
     });
     setIsEditDialogOpen(true);
   };
@@ -370,9 +374,10 @@ export default function AdminPartners() {
               <div className="space-y-2"><Label>Contact Person</Label><Input value={formData.contact_person} onChange={(e) => setFormData({ ...formData, contact_person: e.target.value })} placeholder="Contact person name" /></div>
             </div>
             <div className="space-y-2"><Label>Notes</Label><Textarea value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} placeholder="Internal notes about this partner" rows={2} /></div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="space-y-2"><Label>Commission Rate (%)</Label><Input type="number" value={formData.commission_rate} onChange={(e) => setFormData({ ...formData, commission_rate: e.target.value })} /></div>
               <div className="space-y-2"><Label>Wallet Balance (₹)</Label><Input type="number" value={formData.wallet_balance} onChange={(e) => setFormData({ ...formData, wallet_balance: e.target.value })} /></div>
+              <div className="space-y-2"><Label>Max Client Limit</Label><Input type="number" value={formData.max_client_limit} onChange={(e) => setFormData({ ...formData, max_client_limit: e.target.value })} placeholder="50" min={1} /></div>
             </div>
             <div className="space-y-2">
               <Label>Status</Label>
