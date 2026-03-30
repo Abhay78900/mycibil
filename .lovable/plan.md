@@ -1,64 +1,48 @@
 
 
-## Admin Notification / Broadcast System
+## Progressive Web App (PWA) Setup
 
-### Overview
-Add a broadcast notification system where admins can send announcements to all partners. Partners see unread notifications as a modal on dashboard load and via a bell icon in the header.
+### Important Notes
+- This is a **React/Vite** project (not Laravel). The PWA will be implemented accordingly.
+- PWA features (offline support, install prompt) will **only work in the published/deployed version**, not in the Lovable editor preview.
+- Since you primarily want installability + standalone mode, we'll use a **simple manifest approach** plus a lightweight service worker.
 
-### Database Changes (1 migration)
+### Changes
 
-**Table: `admin_notifications`**
-- `id` uuid PK default gen_random_uuid()
-- `title` text NOT NULL
-- `message` text NOT NULL
-- `created_by` uuid NOT NULL (admin user id)
-- `is_active` boolean default true
-- `created_at` timestamptz default now()
+**1. Create `public/manifest.json`**
+- App name: "Credit Scorewala"
+- Theme/background colors matching the app
+- Icons at 192x192 and 512x512 (we'll generate simple placeholder icons or use existing branding)
+- `display: "standalone"`, `start_url: "/"`
 
-**Table: `notification_reads`**
-- `id` uuid PK default gen_random_uuid()
-- `notification_id` uuid NOT NULL references admin_notifications(id) on delete cascade
-- `partner_id` uuid NOT NULL (partners.id)
-- `read_at` timestamptz default now()
-- unique(notification_id, partner_id)
+**2. Update `index.html`**
+- Link the manifest: `<link rel="manifest" href="/manifest.json">`
+- Add iOS meta tags:
+  - `<meta name="apple-mobile-web-app-capable" content="yes">`
+  - `<meta name="apple-mobile-web-app-status-bar-style" content="default">`
+  - `<meta name="apple-mobile-web-app-title" content="Credit Scorewala">`
+  - `<link rel="apple-touch-icon" href="/icon-192.png">`
+- Add `<meta name="theme-color" content="#...">`
 
-**RLS:**
-- Admins: ALL on both tables
-- Partners: SELECT on `admin_notifications` (where is_active = true), INSERT on `notification_reads` (own partner_id), SELECT on `notification_reads` (own partner_id)
+**3. Create `public/sw.js`** (lightweight service worker)
+- Basic cache-first strategy for static assets
+- Network-first for API calls
+- Minimal offline fallback
 
-### UI Changes
+**4. Add install prompt logic in `src/components/InstallPrompt.tsx`**
+- Listen for `beforeinstallprompt` event
+- Show a custom "Install App" button/banner
+- Handle the prompt acceptance flow
+- Guard against iframe/preview contexts (won't register SW in Lovable preview)
 
-1. **Admin Settings / Dashboard — "Broadcast Notification" section** (`AdminSettings.tsx` or new section in AdminDashboard)
-   - Card with Title input + Message textarea + "Send to All Partners" button
-   - List of past notifications with active/inactive toggle
-   - Shows how many partners have read each notification
+**5. Update `src/main.tsx`**
+- Conditionally register service worker (skip in iframe/preview)
 
-2. **Partner Header — Notification Bell** (`PartnerLayout.tsx` or `PartnerSidebar.tsx`)
-   - Bell icon with red dot badge when unread notifications exist
-   - Clicking opens a dropdown/popover listing recent notifications with dismiss action
+**6. Render `<InstallPrompt />` in `src/App.tsx`**
 
-3. **Partner Dashboard — Auto-popup Modal** (`PartnerDashboard.tsx`)
-   - On load, query `admin_notifications` where `is_active = true` and no matching row in `notification_reads` for current partner
-   - Show the latest unread notification in a Dialog/modal
-   - "Dismiss" button inserts a row into `notification_reads`, closing the modal
-
-4. **New hook: `usePartnerNotifications.ts`**
-   - Fetches unread notifications for current partner
-   - Provides `markAsRead(notificationId)` function
-   - Returns `unreadCount` for the bell badge
-
-### File Changes Summary
-| File | Change |
-|------|--------|
-| New migration | Create `admin_notifications` + `notification_reads` tables with RLS |
-| `src/hooks/usePartnerNotifications.ts` | New hook for fetching/dismissing notifications |
-| `src/pages/admin/AdminSettings.tsx` | Add "Broadcast Notification" card section |
-| `src/components/layout/PartnerLayout.tsx` | Add bell icon with unread badge |
-| `src/pages/partner/PartnerDashboard.tsx` | Add auto-popup modal for unread notifications |
-
-### Technical Notes
-- No realtime needed; notifications are fetched on page load
-- "Mark as read" persists in DB so it survives across sessions
-- Bell badge uses `unreadCount > 0` to show/hide red dot
-- The types file will auto-update after migration
+### Technical Details
+- No `vite-plugin-pwa` needed — simple manual approach
+- SW registration is guarded: won't activate in Lovable preview iframes
+- iOS doesn't support `beforeinstallprompt`, so we rely on meta tags + apple-touch-icon for "Add to Home Screen"
+- For icons, we'll create simple SVG-based PNGs or you can provide custom icons later
 
