@@ -37,6 +37,8 @@ export default function PartnerDashboard() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({ fullName: '', panNumber: '', dateOfBirth: '', gender: '', mobileNumber: '' });
   const [selectedBureaus, setSelectedBureaus] = useState<string[]>(['cibil']);
+  const [notifModalOpen, setNotifModalOpen] = useState(false);
+  const [currentNotif, setCurrentNotif] = useState<any>(null);
 
   useEffect(() => {
     if (!loading && user) loadPartnerData();
