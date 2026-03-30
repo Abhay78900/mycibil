@@ -66,60 +66,53 @@ export default function Payment() {
       // Simulate payment processing
       await new Promise(resolve => setTimeout(resolve, 2000));
 
-      // Generate mock scores
-      const mockScores = {
-        cibil_score: Math.floor(Math.random() * 200) + 650,
-        experian_score: Math.floor(Math.random() * 200) + 650,
-        equifax_score: Math.floor(Math.random() * 200) + 650,
-        crif_score: Math.floor(Math.random() * 200) + 650,
-      };
-
-      const average = Math.round(
-        (mockScores.cibil_score + mockScores.experian_score + mockScores.equifax_score + mockScores.crif_score) / 4
-      );
-
-      // Update report with scores
-      const { error: updateError, data: updatedData } = await supabase
-        .from('credit_reports')
-        .update({
-          ...mockScores,
-          average_score: average,
-          report_status: 'unlocked',
-          is_high_risk: average < 650,
-          active_loans: [
-            { lender: 'HDFC Bank', loan_type: 'Home Loan', current_balance: 2500000, status: 'Active' },
-            { lender: 'ICICI Bank', loan_type: 'Personal Loan', current_balance: 150000, status: 'Active' }
-          ],
-          credit_cards: [
-            { bank: 'Axis Bank', credit_limit: 200000, current_balance: 45000, status: 'Active' }
-          ],
-          improvement_tips: [
-            'Maintain credit utilization below 30%',
-            'Pay all EMIs on time',
-            'Avoid multiple credit applications',
-            'Keep older credit accounts active'
-          ]
-        })
-        .eq('id', reportId)
-        .select();
-
-      if (updateError) {
-        console.error('Report update failed:', updateError);
-        throw updateError;
-      }
-
-      // Verify the update actually happened
-      if (!updatedData || updatedData.length === 0) {
-        throw new Error('Failed to update report - RLS policy may be blocking the update');
-      }
-
-      // Update transaction
+      // Update transaction status
       await supabase
         .from('transactions')
         .update({ status: 'success', payment_method: 'card' })
         .eq('report_id', reportId);
 
-      toast.success('Payment successful! Your report is ready.');
+      // Unlock the report
+      const { error: unlockError, data: updatedData } = await supabase
+        .from('credit_reports')
+        .update({ report_status: 'unlocked' })
+        .eq('id', reportId)
+        .select();
+
+      if (unlockError) {
+        console.error('Report unlock failed:', unlockError);
+        throw unlockError;
+      }
+
+      if (!updatedData || updatedData.length === 0) {
+        throw new Error('Failed to unlock report - RLS policy may be blocking the update');
+      }
+
+      // Call bureau edge functions for selected bureaus
+      const selectedBureaus = report?.selected_bureaus || ['cibil', 'experian', 'equifax', 'crif'];
+      
+      toast.info('Fetching credit reports from bureaus...');
+
+      const bureauResults = await fetchMultipleBureaus(selectedBureaus, {
+        reportId: reportId!,
+        fullName: report.full_name,
+        panNumber: report.pan_number,
+        mobileNumber: report.mobile_number || '',
+        dateOfBirth: report.date_of_birth || undefined,
+        gender: report.gender || undefined,
+      });
+
+      // Check results
+      const successCount = Object.values(bureauResults).filter(r => r.success).length;
+      const failCount = Object.values(bureauResults).filter(r => !r.success).length;
+
+      if (successCount > 0) {
+        toast.success(`Payment successful! ${successCount} bureau report(s) fetched.`);
+      }
+      if (failCount > 0) {
+        toast.warning(`${failCount} bureau(s) had issues. Reports may show partial data.`);
+      }
+
       navigate(`/report/${reportId}`);
     } catch (error: any) {
       console.error('Payment error:', error);
