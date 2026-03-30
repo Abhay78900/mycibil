@@ -207,7 +207,6 @@ export default function AdminPartners() {
                     <TableRow>
                       <TableHead>Partner</TableHead>
                       <TableHead>Contact</TableHead>
-                      <TableHead>Contact</TableHead>
                       <TableHead>Wallet</TableHead>
                       <TableHead>Commission</TableHead>
                       <TableHead>Status</TableHead>
