@@ -20,6 +20,7 @@ export default function PartnerLayout({ children, partner }: PartnerLayoutProps)
   const location = useLocation();
   const [open, setOpen] = useState(false);
   const [desktopCollapsed, setDesktopCollapsed] = useState(false);
+  const { notifications, unreadCount, markAsRead, markAllAsRead } = usePartnerNotifications(partner?.id || null);
 
   const handleLogout = async () => {
     await signOut();
