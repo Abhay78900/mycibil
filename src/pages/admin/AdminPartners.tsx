@@ -241,17 +241,36 @@ export default function AdminPartners() {
                         <TableCell><div className="flex items-center gap-2"><Percent className="w-4 h-4 text-muted-foreground" /><span>{partner.commission_rate}%</span></div></TableCell>
                         <TableCell><Badge variant={partner.status === 'active' ? 'default' : 'secondary'}>{partner.status?.toUpperCase()}</Badge></TableCell>
                         <TableCell>
-                          <div className="flex items-center gap-2">
-                            {(partner as any).is_crm_enabled ? <Unlock className="w-4 h-4 text-green-600" /> : <Lock className="w-4 h-4 text-destructive" />}
-                            <Switch
-                              checked={(partner as any).is_crm_enabled ?? false}
-                              onCheckedChange={async (checked) => {
-                                const { error } = await supabase.from('partners').update({ is_crm_enabled: checked } as any).eq('id', partner.id);
-                                if (error) { toast.error('Failed to update CRM access'); return; }
-                                toast.success(`CRM ${checked ? 'enabled' : 'disabled'} for ${partner.name}`);
-                                loadPartners();
-                              }}
-                            />
+                          <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-1.5">
+                              {(partner as any).is_crm_enabled ? <Unlock className="w-4 h-4 text-green-600" /> : <Lock className="w-4 h-4 text-destructive" />}
+                              <Switch
+                                checked={(partner as any).is_crm_enabled ?? false}
+                                onCheckedChange={async (checked) => {
+                                  const { error } = await supabase.from('partners').update({ is_crm_enabled: checked } as any).eq('id', partner.id);
+                                  if (error) { toast.error('Failed to update CRM access'); return; }
+                                  toast.success(`CRM ${checked ? 'enabled' : 'disabled'} for ${partner.name}`);
+                                  loadPartners();
+                                }}
+                              />
+                            </div>
+                            <div className="flex items-center gap-1 text-sm text-muted-foreground" title="Max Client Limit">
+                              <Users className="w-3.5 h-3.5" />
+                              <Input
+                                type="number"
+                                className="w-16 h-7 text-xs text-center px-1"
+                                value={(partner as any).max_client_limit ?? 50}
+                                min={1}
+                                onChange={async (e) => {
+                                  const val = parseInt(e.target.value);
+                                  if (isNaN(val) || val < 1) return;
+                                  const { error } = await supabase.from('partners').update({ max_client_limit: val } as any).eq('id', partner.id);
+                                  if (error) { toast.error('Failed to update limit'); return; }
+                                  loadPartners();
+                                }}
+                                onBlur={() => toast.success(`Client limit updated for ${partner.name}`)}
+                              />
+                            </div>
                           </div>
                         </TableCell>
                         <TableCell>
