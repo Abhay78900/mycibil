@@ -129,10 +129,10 @@ export default function AdminLoanCRM() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <StatsCard title="Total Clients" value={stats.total} icon={<Building2 className="w-5 h-5" />} />
-        <StatsCard title="Disbursed" value={stats.disbursed} icon={<TrendingUp className="w-5 h-5" />} />
-        <StatsCard title="Total Loan Value" value={`₹${(stats.totalAmount / 100000).toFixed(1)}L`} icon={<TrendingUp className="w-5 h-5" />} />
-        <StatsCard title="Upcoming Follow-ups" value={stats.upcoming} icon={<CalendarDays className="w-5 h-5" />} />
+        <StatsCard title="Total Clients" value={stats.total} icon={Building2} />
+        <StatsCard title="Disbursed" value={stats.disbursed} icon={TrendingUp} />
+        <StatsCard title="Total Loan Value" value={`₹${(stats.totalAmount / 100000).toFixed(1)}L`} icon={TrendingUp} />
+        <StatsCard title="Upcoming Follow-ups" value={stats.upcoming} icon={CalendarDays} />
       </div>
 
       {/* Filters */}
