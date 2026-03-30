@@ -74,7 +74,7 @@ export default function PartnerDashboard() {
     setIsSubmitting(true);
     try {
       const amountPaid = isReportCountMode ? 0 : totalCost;
-      const { data: report, error: reportError } = await supabase.from('credit_reports').insert({ user_id: user?.id, partner_id: partner.id, full_name: formData.fullName, pan_number: formData.panNumber.toUpperCase(), date_of_birth: formData.dateOfBirth || null, selected_bureaus: selectedBureaus, report_status: 'processing', amount_paid: amountPaid }).select().single();
+      const { data: report, error: reportError } = await supabase.from('credit_reports').insert({ user_id: user?.id, partner_id: partner.id, full_name: formData.fullName, pan_number: formData.panNumber.toUpperCase(), date_of_birth: formData.dateOfBirth || null, mobile_number: formData.mobileNumber || null, selected_bureaus: selectedBureaus, report_status: 'processing', amount_paid: amountPaid }).select().single();
       if (reportError) throw reportError;
       if (isReportCountMode) {
         const deductionAmount = reportUnitPrice * bureauCount;
