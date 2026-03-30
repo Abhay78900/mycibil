@@ -239,13 +239,21 @@ export default function PartnerCRM() {
     return <div className="min-h-screen flex items-center justify-center bg-background"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
   }
 
+  const maxClientLimit = (partner as any)?.max_client_limit ?? 50;
+  const limitReached = clients.length >= maxClientLimit;
+
   if (!crmEnabled) {
     return (
       <PartnerLayout partner={partner}>
         <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
-          <Lock className="w-16 h-16 text-muted-foreground mb-4" />
+          <div className="w-20 h-20 rounded-full bg-destructive/10 flex items-center justify-center mb-6">
+            <Lock className="w-10 h-10 text-destructive" />
+          </div>
           <h2 className="text-2xl font-bold text-foreground mb-2">CRM Access Locked</h2>
-          <p className="text-muted-foreground max-w-md">Your CRM module is currently disabled. Please contact the Admin to enable CRM access for your account.</p>
+          <p className="text-muted-foreground max-w-md mb-4">This feature is currently locked. Please contact Admin to unlock CRM access for your account.</p>
+          <Badge variant="destructive" className="text-sm px-4 py-2">
+            <Lock className="w-3.5 h-3.5 mr-2" />Feature Disabled by Admin
+          </Badge>
         </div>
       </PartnerLayout>
     );
