@@ -361,7 +361,7 @@ export default function AdminApiLogs() {
 
       {/* View Dialog */}
       <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh]">
+        <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Badge className={bureauColors[selectedLog?.bureau_code || ''] || ''}>
