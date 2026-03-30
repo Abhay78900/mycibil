@@ -33,6 +33,7 @@ import PartnerGenerate from "./pages/partner/PartnerGenerate";
 import PartnerClients from "./pages/partner/PartnerClients";
 import PartnerReports from "./pages/partner/PartnerReports";
 import PartnerWallet from "./pages/partner/PartnerWallet";
+import PartnerProfile from "./pages/partner/PartnerProfile";
 
 const queryClient = new QueryClient();
 
