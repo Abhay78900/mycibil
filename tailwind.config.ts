@@ -122,6 +122,10 @@ export default {
           "0%": { strokeDashoffset: "1000" },
           "100%": { strokeDashoffset: "var(--gauge-offset)" },
         },
+        "floating": {
+          "0%, 100%": { transform: "translateX(0)" },
+          "50%": { transform: "translateX(4px)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -130,6 +134,7 @@ export default {
         "scale-in": "scale-in 0.3s ease-out forwards",
         "slide-in-right": "slide-in-right 0.3s ease-out forwards",
         "gauge-fill": "gauge-fill 1.5s ease-out forwards",
+        "floating": "floating 2s ease-in-out infinite",
       },
     },
   },
