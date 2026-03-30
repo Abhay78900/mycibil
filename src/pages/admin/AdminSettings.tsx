@@ -801,6 +801,77 @@ export default function AdminSettings() {
             </CardContent>
           </Card>
 
+          {/* Broadcast Notification Section */}
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Megaphone className="w-5 h-5 text-primary" />
+                Broadcast Notification
+              </CardTitle>
+              <CardDescription>Send announcements to all partners</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="notif-title">Title *</Label>
+                <Input
+                  id="notif-title"
+                  value={notifTitle}
+                  onChange={(e) => setNotifTitle(e.target.value)}
+                  placeholder="Notification title"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="notif-message">Message *</Label>
+                <Textarea
+                  id="notif-message"
+                  value={notifMessage}
+                  onChange={(e) => setNotifMessage(e.target.value)}
+                  placeholder="Write your announcement message here..."
+                  rows={4}
+                />
+              </div>
+              <Button onClick={handleSendNotification} disabled={isSendingNotif}>
+                {isSendingNotif ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
+                Send to All Partners
+              </Button>
+
+              {/* Past Notifications */}
+              {pastNotifications.length > 0 && (
+                <div className="mt-6 pt-4 border-t space-y-3">
+                  <h4 className="font-semibold text-sm text-muted-foreground">Past Notifications</h4>
+                  {pastNotifications.map((notif) => (
+                    <div key={notif.id} className="flex items-start justify-between gap-3 p-3 rounded-lg bg-accent/30 border">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-sm truncate">{notif.title}</p>
+                          <Badge variant={notif.is_active ? "default" : "secondary"} className="text-xs shrink-0">
+                            {notif.is_active ? 'Active' : 'Inactive'}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{notif.message}</p>
+                        <div className="flex items-center gap-3 mt-1.5">
+                          <span className="text-xs text-muted-foreground">{new Date(notif.created_at).toLocaleDateString()}</span>
+                          <span className="text-xs text-muted-foreground flex items-center gap-1">
+                            <Eye className="w-3 h-3" /> {notifReadCounts[notif.id] || 0} read
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <Switch
+                          checked={notif.is_active}
+                          onCheckedChange={() => toggleNotifActive(notif.id, notif.is_active)}
+                        />
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => deleteNotification(notif.id)}>
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">

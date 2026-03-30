@@ -214,6 +214,27 @@ export default function PartnerDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Notification Auto-popup Modal */}
+      <Dialog open={notifModalOpen} onOpenChange={(open) => { if (!open) handleDismissNotif(); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="flex items-center gap-2">
+              <Megaphone className="w-5 h-5 text-primary" />
+              <DialogTitle>{currentNotif?.title}</DialogTitle>
+            </div>
+            <DialogDescription className="text-xs">
+              Admin Announcement • {currentNotif ? new Date(currentNotif.created_at).toLocaleDateString() : ''}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-3">
+            <p className="text-sm text-foreground whitespace-pre-wrap">{currentNotif?.message}</p>
+          </div>
+          <DialogFooter>
+            <Button onClick={handleDismissNotif}>Dismiss</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </PartnerLayout>
   );
 }

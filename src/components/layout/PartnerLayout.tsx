@@ -79,13 +79,55 @@ export default function PartnerLayout({ children, partner }: PartnerLayoutProps)
 
       {/* Main content */}
       <div className="flex flex-col flex-1 min-w-0">
-        <div className="lg:hidden flex items-center gap-3 px-4 py-3 border-b border-border bg-card">
-          <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-border bg-card">
+          <div className="flex items-center gap-2 lg:hidden">
             <div className="w-8 h-8 bg-secondary rounded-lg flex items-center justify-center">
               <Building2 className="w-4 h-4 text-secondary-foreground" />
             </div>
             <span className="font-bold text-foreground truncate">{partner?.name || 'Partner'}</span>
           </div>
+          <div className="hidden lg:block" />
+          {/* Notification Bell */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" size="icon" className="relative">
+                <Bell className="w-5 h-5" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-destructive rounded-full text-[10px] font-bold text-destructive-foreground flex items-center justify-center">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-80 p-0">
+              <div className="p-3 border-b flex items-center justify-between">
+                <span className="font-semibold text-sm">Notifications</span>
+                {unreadCount > 0 && (
+                  <Button variant="ghost" size="sm" className="text-xs h-7" onClick={markAllAsRead}>
+                    Mark all read
+                  </Button>
+                )}
+              </div>
+              <div className="max-h-64 overflow-y-auto">
+                {notifications.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-6">No new notifications</p>
+                ) : (
+                  notifications.map((n) => (
+                    <div key={n.id} className="p-3 border-b last:border-b-0 hover:bg-accent/50 transition-colors">
+                      <p className="font-medium text-sm">{n.title}</p>
+                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{n.message}</p>
+                      <div className="flex items-center justify-between mt-2">
+                        <span className="text-[10px] text-muted-foreground">{new Date(n.created_at).toLocaleDateString()}</span>
+                        <Button variant="ghost" size="sm" className="text-xs h-6" onClick={() => markAsRead(n.id)}>
+                          Dismiss
+                        </Button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
 
         <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-auto">
