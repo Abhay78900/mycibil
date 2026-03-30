@@ -1,54 +1,70 @@
 
 
-## Fix: Ensure All Bureau Edge Functions Log to `bureau_api_logs` in Sandbox Mode
+## Problem Analysis: Credit Report Response Not Showing Properly
 
-### Problem
-- **CIBIL**: Sandbox mode block (line 135-138) has **no logging at all** — `logBureauApiCall` is never called.
-- **Experian & Equifax**: Sandbox logging exists but is guarded by `if (userId)`. If `reportInfo` lookup fails or returns null, the log is silently skipped.
+### Root Cause Found
 
-### Changes
+The **Payment page (`Payment.tsx`) never calls any bureau edge functions**. Instead, it:
 
-#### 1. `supabase/functions/fetch-cibil-report/index.ts`
-Add `logBureauApiCall` in the sandbox block (after line 138), matching the pattern used by Experian/Equifax:
-```typescript
-// After generating mock data
-if (userId) {
-  await logBureauApiCall(supabase, {
-    reportId, userId, partnerId,
-    bureauCode: 'cibil', bureauName: 'CIBIL',
-    requestPayload, responseJson: rawCibilData,
-    responseStatus: 200, isSandbox: true,
-    errorMessage: null, processingTimeMs: Date.now() - startTime
-  });
-}
+1. Simulates a 2-second delay (line 65)
+2. Generates **random mock scores** directly in the browser (lines 68-73)
+3. Writes these mock scores directly to the `credit_reports` table (lines 80-102)
+4. **Never stores any `raw_<bureau>_data`** — those columns remain `null`
+5. Navigates to the Credit Report page
+
+Since `raw_cibil_data`, `raw_experian_data`, `raw_equifax_data`, and `raw_crif_data` are all **null** in the database, the `FullCreditReportView` falls back to the mock template from `mockReportData.ts` — which shows generic placeholder data, not real or even sandbox-generated bureau reports.
+
+**In short: the edge functions you've built and logged are never actually called during the payment/report generation flow.**
+
+### Secondary Issues
+
+| # | Issue | Location |
+|---|-------|----------|
+| 1 | **Edge functions never invoked** — Payment.tsx generates random scores client-side without calling `fetch-cibil-report`, `fetch-experian-report`, `fetch-equifax-report`, or `fetch-crif-report` | `src/pages/Payment.tsx` lines 55-128 |
+| 2 | **CIBIL duplicate sandbox logging** — `logBureauApiCall` is called inside the sandbox block (lines 141-154) AND again after the if/else (lines 327-342), creating 2 log entries per call | `supabase/functions/fetch-cibil-report/index.ts` |
+| 3 | **CRIF userId fallback is invalid** — `userId = reportRow?.user_id ?? 'unknown'` will fail on insert since `bureau_api_logs.user_id` is `uuid NOT NULL` | `supabase/functions/fetch-crif-report/index.ts` line 60 |
+
+### Solution
+
+#### 1. Fix `Payment.tsx` — Call Bureau Edge Functions After Payment
+
+Replace the mock score generation with actual calls to the bureau edge functions using the existing `useBureauApi` hook:
+
+```
+Payment flow (after payment success):
+1. Update transaction status to 'success'
+2. Update report_status to 'unlocked'
+3. Call fetchMultipleBureaus() with the report's selected_bureaus
+4. Wait for all bureau calls to complete
+5. Navigate to /report/{reportId}
 ```
 
-#### 2. All 3 functions: Remove `if (userId)` guard for sandbox logging
-Change the guard from `if (userId)` to always log, using a fallback for `userId`:
+This will:
+- Invoke the edge functions (sandbox or production)
+- Store `raw_<bureau>_data` in the database
+- Log API calls to `bureau_api_logs`
+- Let `FullCreditReportView` render actual data (not fallback templates)
+
+#### 2. Fix CIBIL Duplicate Logging
+
+Remove the second `logBureauApiCall` block at lines 327-342 in `fetch-cibil-report/index.ts`. The sandbox logging at lines 141-154 already handles it.
+
+#### 3. Fix CRIF userId Fallback
+
+Change line 60 in `fetch-crif-report/index.ts` from:
 ```typescript
-await logBureauApiCall(supabase, {
-  ...
-  userId: userId || 'unknown',
-  ...
-});
+const userId = reportRow?.user_id ?? 'unknown';
 ```
-This ensures logs are never silently dropped. The `bureau_api_logs.user_id` column is `NOT NULL`, so we need a value — we'll use the actual userId which should always exist since we look it up from the report record.
+to:
+```typescript
+const userId = reportRow?.user_id ?? null;
+```
+Then guard all `logBureauApiCall` calls with `if (userId)`.
 
-Actually, `user_id` is a `uuid NOT NULL` column, so passing `'unknown'` would fail. The safer fix is to keep the guard but log a warning when userId is missing. Since `credit_reports` always has a `user_id`, this should rarely happen.
-
-#### 3. Redeploy all 3 edge functions
-- `fetch-cibil-report`
-- `fetch-experian-report`
-- `fetch-equifax-report`
-
-### Summary of Changes
+### Files to Change
 | File | Change |
 |------|--------|
-| `fetch-cibil-report/index.ts` | Add `logBureauApiCall` call in sandbox block |
-| `fetch-experian-report/index.ts` | No code change needed (already logs in sandbox) |
-| `fetch-equifax-report/index.ts` | No code change needed (already logs in sandbox) |
-| All 3 functions | Redeploy to ensure latest code is live |
-
-### Technical Note
-The root cause of missing logs was specifically the CIBIL function — it was the only one that never called `logBureauApiCall` during sandbox mode. Experian and Equifax already have this call. All three will be redeployed to ensure consistency.
+| `src/pages/Payment.tsx` | Replace mock score generation with `useBureauApi.fetchMultipleBureaus()` calls |
+| `supabase/functions/fetch-cibil-report/index.ts` | Remove duplicate sandbox logging (lines 327-342) |
+| `supabase/functions/fetch-crif-report/index.ts` | Fix `userId` fallback from `'unknown'` to `null` with guard |
 
