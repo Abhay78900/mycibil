@@ -205,11 +205,6 @@ export default function AdminPartnerLeadDetail() {
     }
   };
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate('/');
-  };
-
   if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
