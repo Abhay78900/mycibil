@@ -206,7 +206,7 @@ export default function AdminPartners() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Partner</TableHead>
-                      <TableHead>Franchise ID</TableHead>
+                      <TableHead>Contact</TableHead>
                       <TableHead>Contact</TableHead>
                       <TableHead>Wallet</TableHead>
                       <TableHead>Commission</TableHead>
@@ -230,7 +230,6 @@ export default function AdminPartners() {
                             </div>
                           </div>
                         </TableCell>
-                        <TableCell><span className="font-mono text-sm bg-accent px-2 py-1 rounded">{partner.franchise_id}</span></TableCell>
                         <TableCell>
                           <div className="space-y-1">
                             {partner.mobile && <div className="flex items-center gap-1 text-sm"><Phone className="w-3 h-3 text-muted-foreground" />{partner.mobile}</div>}
@@ -305,7 +304,7 @@ export default function AdminPartners() {
                 </Avatar>
                 <div>
                   <h3 className="text-lg font-bold text-foreground">{viewingPartner.name}</h3>
-                  <p className="text-sm font-mono text-muted-foreground">{viewingPartner.franchise_id}</p>
+                  <Badge variant={viewingPartner.status === 'active' ? 'default' : 'secondary'} className="mt-1">{viewingPartner.status?.toUpperCase()}</Badge>
                   <Badge variant={viewingPartner.status === 'active' ? 'default' : 'secondary'} className="mt-1">{viewingPartner.status?.toUpperCase()}</Badge>
                 </div>
               </div>
