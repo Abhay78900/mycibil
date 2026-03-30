@@ -53,7 +53,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               ${desktopCollapsed ? 'lg:flex' : 'lg:hidden'}
               ${open ? 'hidden' : 'flex lg:hidden'}
               hover:bg-primary/90 active:scale-95
-              animate-[floating_2s_ease-in-out_infinite]`}
+              animate-floating`}
             style={{ touchAction: 'manipulation' }}
             aria-label="Open sidebar"
           >
