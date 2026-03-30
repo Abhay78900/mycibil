@@ -324,22 +324,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Log sandbox mode call
-    if (isSandboxMode && userId) {
-      await logBureauApiCall(supabase, {
-        reportId,
-        userId,
-        partnerId,
-        bureauCode: 'cibil',
-        bureauName: 'TransUnion CIBIL',
-        requestPayload,
-        responseJson: rawCibilData,
-        responseStatus: 200,
-        isSandbox: true,
-        errorMessage: null,
-        processingTimeMs: Date.now() - startTime
-      });
-    }
+    // Duplicate sandbox logging removed - already handled in sandbox block above (lines 141-154)
 
     // Update the credit report
     const { error: updateError } = await supabase

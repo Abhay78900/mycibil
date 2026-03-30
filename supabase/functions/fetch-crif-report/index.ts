@@ -57,7 +57,7 @@ Deno.serve(async (req) => {
       .select('user_id, partner_id')
       .eq('id', reportId)
       .maybeSingle();
-    const userId = reportRow?.user_id ?? 'unknown';
+    const userId = reportRow?.user_id ?? null;
     const partnerId = reportRow?.partner_id ?? null;
 
     // Check sandbox mode
