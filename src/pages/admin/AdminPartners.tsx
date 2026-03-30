@@ -121,7 +121,7 @@ export default function AdminPartners() {
     } catch (error: any) { toast.error(error.message || 'Failed to update partner'); } finally { setIsSaving(false); }
   };
 
-  const resetFormData = () => setFormData({ name: '', email: '', password: '', commission_rate: '10', wallet_balance: '0', status: 'active', mobile: '', address: '', pan_number: '', partner_email: '' });
+  const resetFormData = () => setFormData({ name: '', email: '', password: '', commission_rate: '10', wallet_balance: '0', status: 'active', mobile: '', address: '', pan_number: '', partner_email: '', notes: '' });
 
   const openEditDialog = (partner: Partner) => {
     setEditingPartner(partner);
