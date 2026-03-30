@@ -49,7 +49,7 @@ export default function AdminPartners() {
   const [viewingPartner, setViewingPartner] = useState<Partner | null>(null);
   const [formData, setFormData] = useState({
     name: '', email: '', password: '', commission_rate: '10', wallet_balance: '0', status: 'active',
-    mobile: '', address: '', pan_number: '', partner_email: '',
+    mobile: '', address: '', pan_number: '', partner_email: '', notes: '',
   });
 
   useEffect(() => {
