@@ -753,9 +753,8 @@ export default function AdminSettings() {
                 <Switch />
               </div>
             </CardContent>
-          </Card>
-        </div>
-      </main>
-    </div>
+        </Card>
+      </div>
+    </AdminLayout>
   );
 }
