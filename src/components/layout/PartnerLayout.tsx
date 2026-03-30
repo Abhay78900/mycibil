@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import PartnerSidebar from '@/components/partner/PartnerSidebar';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
 import { Menu, Building2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface PartnerLayoutProps {
   children: React.ReactNode;
@@ -14,6 +15,7 @@ interface PartnerLayoutProps {
 export default function PartnerLayout({ children, partner }: PartnerLayoutProps) {
   const { signOut } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [open, setOpen] = useState(false);
 
   const handleLogout = async () => {
@@ -54,7 +56,17 @@ export default function PartnerLayout({ children, partner }: PartnerLayoutProps)
 
         <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-auto">
           <div className="max-w-7xl mx-auto">
-            {children}
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={location.pathname}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.25, ease: 'easeOut' }}
+              >
+                {children}
+              </motion.div>
+            </AnimatePresence>
           </div>
         </main>
       </div>
