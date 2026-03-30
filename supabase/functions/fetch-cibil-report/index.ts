@@ -136,6 +136,25 @@ Deno.serve(async (req) => {
       console.log('[CIBIL] Running in sandbox mode - generating mock data');
       cibilScore = Math.floor(Math.random() * (850 - 650 + 1)) + 650;
       rawCibilData = generateMockCibilData(fullName, normalizedPan, dateOfBirth, gender, cibilScore);
+
+      // Log sandbox API call
+      if (userId) {
+        await logBureauApiCall(supabase, {
+          reportId,
+          userId,
+          partnerId,
+          bureauCode: 'cibil',
+          bureauName: 'CIBIL',
+          requestPayload,
+          responseJson: rawCibilData,
+          responseStatus: 200,
+          isSandbox: true,
+          errorMessage: null,
+          processingTimeMs: Date.now() - startTime
+        });
+      } else {
+        console.warn('[CIBIL] Skipping sandbox log - userId not found for report:', reportId);
+      }
     } else {
       // CIBIL API endpoint
       const cibilApiUrl = apiEnvironment === 'production'
