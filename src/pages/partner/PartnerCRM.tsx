@@ -443,7 +443,7 @@ export default function PartnerCRM() {
       {/* Add Dialog */}
       <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
         <DialogContent className="w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>Add New Loan Client</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Add New Loan Client</DialogTitle><DialogDescription>Fill in client and loan details</DialogDescription></DialogHeader>
           {renderForm(handleAdd, 'Add Client')}
         </DialogContent>
       </Dialog>
