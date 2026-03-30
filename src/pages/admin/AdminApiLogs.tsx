@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import AdminSidebar from '@/components/admin/AdminSidebar';
+import AdminLayout from '@/components/layout/AdminLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -163,11 +163,8 @@ export default function AdminApiLogs() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex">
-      <AdminSidebar />
-      
-      <main className="flex-1 p-6 md:p-8 overflow-auto">
-        <div className="max-w-7xl mx-auto space-y-6">
+    <AdminLayout>
+      <div className="space-y-6">
           {/* Header */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
@@ -286,8 +283,8 @@ export default function AdminApiLogs() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+              <div className="overflow-x-auto -mx-2 px-2 sm:mx-0 sm:px-0">
+                <table className="w-full text-sm min-w-[700px]">
                   <thead>
                     <tr className="border-b">
                       <th className="text-left p-3 font-medium">Timestamp</th>
@@ -360,11 +357,10 @@ export default function AdminApiLogs() {
             </CardContent>
           </Card>
         </div>
-      </main>
 
       {/* View Dialog */}
       <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh]">
+        <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Badge className={bureauColors[selectedLog?.bureau_code || ''] || ''}>
@@ -458,6 +454,6 @@ export default function AdminApiLogs() {
           )}
         </DialogContent>
       </Dialog>
-    </div>
+    </AdminLayout>
   );
 }
