@@ -125,6 +125,7 @@ export default function AdminPartners() {
         occupation: formData.occupation || null,
         investment: formData.investment || null,
         contact_person: formData.contact_person || null,
+        max_client_limit: parseInt(formData.max_client_limit) || 50,
       } as any).eq('id', editingPartner.id);
       if (error) throw error;
       toast.success('Partner updated successfully!');
