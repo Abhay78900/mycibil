@@ -284,7 +284,7 @@ export default function AdminApiLogs() {
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto -mx-2 px-2 sm:mx-0 sm:px-0">
-                <table className="w-full text-sm">
+                <table className="w-full text-sm min-w-[700px]">
                   <thead>
                     <tr className="border-b">
                       <th className="text-left p-3 font-medium">Timestamp</th>
