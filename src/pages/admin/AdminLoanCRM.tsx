@@ -248,7 +248,10 @@ export default function AdminLoanCRM() {
       {/* View Dialog */}
       <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
         <DialogContent className="w-[95vw] sm:max-w-lg">
-          <DialogHeader><DialogTitle>Client Details</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>Client Details</DialogTitle>
+            <DialogDescription>View loan client information and status</DialogDescription>
+          </DialogHeader>
           {viewingClient && (
             <div className="space-y-3 py-2">
               <div className="grid grid-cols-2 gap-3">
