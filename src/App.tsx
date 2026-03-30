@@ -22,6 +22,7 @@ import AdminReports from "./pages/admin/AdminReports";
 import AdminApiLogs from "./pages/admin/AdminApiLogs";
 import AdminRevenue from "./pages/admin/AdminRevenue";
 import AdminSettings from "./pages/admin/AdminSettings";
+import AdminLoanCRM from "./pages/admin/AdminLoanCRM";
 
 // Public Pages
 import BecomePartner from "./pages/BecomePartner";
