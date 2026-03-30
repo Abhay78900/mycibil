@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import Header from '@/components/layout/Header';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { useBureauApi } from '@/hooks/useBureauApi';
 import { Loader2, CreditCard, Lock, CheckCircle2, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 
