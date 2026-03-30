@@ -32,6 +32,7 @@ interface Partner {
   pan_number?: string;
   email?: string;
   profile_picture_url?: string;
+  notes?: string;
 }
 
 export default function AdminPartners() {
@@ -48,7 +49,7 @@ export default function AdminPartners() {
   const [viewingPartner, setViewingPartner] = useState<Partner | null>(null);
   const [formData, setFormData] = useState({
     name: '', email: '', password: '', commission_rate: '10', wallet_balance: '0', status: 'active',
-    mobile: '', address: '', pan_number: '', partner_email: '',
+    mobile: '', address: '', pan_number: '', partner_email: '', notes: '',
   });
 
   useEffect(() => {
@@ -110,6 +111,7 @@ export default function AdminPartners() {
         address: formData.address || null,
         pan_number: formData.pan_number.toUpperCase() || null,
         email: formData.partner_email || null,
+        notes: formData.notes || null,
       } as any).eq('id', editingPartner.id);
       if (error) throw error;
       toast.success('Partner updated successfully!');
@@ -119,7 +121,7 @@ export default function AdminPartners() {
     } catch (error: any) { toast.error(error.message || 'Failed to update partner'); } finally { setIsSaving(false); }
   };
 
-  const resetFormData = () => setFormData({ name: '', email: '', password: '', commission_rate: '10', wallet_balance: '0', status: 'active', mobile: '', address: '', pan_number: '', partner_email: '' });
+  const resetFormData = () => setFormData({ name: '', email: '', password: '', commission_rate: '10', wallet_balance: '0', status: 'active', mobile: '', address: '', pan_number: '', partner_email: '', notes: '' });
 
   const openEditDialog = (partner: Partner) => {
     setEditingPartner(partner);
@@ -132,6 +134,7 @@ export default function AdminPartners() {
       address: partner.address || '',
       pan_number: partner.pan_number || '',
       partner_email: partner.email || '',
+      notes: partner.notes || '',
     });
     setIsEditDialogOpen(true);
   };
@@ -297,6 +300,7 @@ export default function AdminPartners() {
               <div className="space-y-2"><Label>Gmail / Email ID</Label><Input type="email" value={formData.partner_email} onChange={(e) => setFormData({ ...formData, partner_email: e.target.value })} placeholder="partner@gmail.com" /></div>
             </div>
             <div className="space-y-2"><Label>Address</Label><Textarea value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} placeholder="Full business address" rows={2} /></div>
+            <div className="space-y-2"><Label>Notes</Label><Textarea value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} placeholder="Internal notes about this partner" rows={2} /></div>
             <div className="space-y-2"><Label>Commission Rate (%)</Label><Input type="number" value={formData.commission_rate} onChange={(e) => setFormData({ ...formData, commission_rate: e.target.value })} /></div>
             <Button className="w-full" onClick={handleAddPartner} disabled={isSaving}>
               {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}Add Partner
@@ -319,6 +323,7 @@ export default function AdminPartners() {
               <div className="space-y-2"><Label>Email ID</Label><Input type="email" value={formData.partner_email} onChange={(e) => setFormData({ ...formData, partner_email: e.target.value })} placeholder="partner@gmail.com" /></div>
             </div>
             <div className="space-y-2"><Label>Address</Label><Textarea value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} placeholder="Full address" rows={2} /></div>
+            <div className="space-y-2"><Label>Notes</Label><Textarea value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} placeholder="Internal notes about this partner" rows={2} /></div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2"><Label>Commission Rate (%)</Label><Input type="number" value={formData.commission_rate} onChange={(e) => setFormData({ ...formData, commission_rate: e.target.value })} /></div>
               <div className="space-y-2"><Label>Wallet Balance (₹)</Label><Input type="number" value={formData.wallet_balance} onChange={(e) => setFormData({ ...formData, wallet_balance: e.target.value })} /></div>

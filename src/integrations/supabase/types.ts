@@ -334,6 +334,7 @@ export type Database = {
           id: string
           mobile: string | null
           name: string
+          notes: string | null
           owner_id: string
           pan_number: string | null
           profile_picture_url: string | null
@@ -353,6 +354,7 @@ export type Database = {
           id?: string
           mobile?: string | null
           name: string
+          notes?: string | null
           owner_id: string
           pan_number?: string | null
           profile_picture_url?: string | null
@@ -372,6 +374,7 @@ export type Database = {
           id?: string
           mobile?: string | null
           name?: string
+          notes?: string | null
           owner_id?: string
           pan_number?: string | null
           profile_picture_url?: string | null
