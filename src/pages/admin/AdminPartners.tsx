@@ -231,7 +231,6 @@ export default function AdminPartners() {
                           </div>
                         </TableCell>
                         <TableCell>
-                        <TableCell>
                           <div className="space-y-1">
                             {partner.mobile && <div className="flex items-center gap-1 text-sm"><Phone className="w-3 h-3 text-muted-foreground" />{partner.mobile}</div>}
                             {partner.pan_number && <div className="flex items-center gap-1 text-sm"><CreditCard className="w-3 h-3 text-muted-foreground" />{partner.pan_number}</div>}
