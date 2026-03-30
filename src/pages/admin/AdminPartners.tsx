@@ -236,6 +236,19 @@ export default function AdminPartners() {
                         <TableCell><div className="flex items-center gap-2"><Percent className="w-4 h-4 text-muted-foreground" /><span>{partner.commission_rate}%</span></div></TableCell>
                         <TableCell><Badge variant={partner.status === 'active' ? 'default' : 'secondary'}>{partner.status?.toUpperCase()}</Badge></TableCell>
                         <TableCell>
+                          <div className="flex items-center gap-2">
+                            {(partner as any).is_crm_enabled ? <Unlock className="w-4 h-4 text-green-600" /> : <Lock className="w-4 h-4 text-destructive" />}
+                            <Switch
+                              checked={(partner as any).is_crm_enabled ?? false}
+                              onCheckedChange={async (checked) => {
+                                const { error } = await supabase.from('partners').update({ is_crm_enabled: checked } as any).eq('id', partner.id);
+                                if (error) { toast.error('Failed to update CRM access'); return; }
+                                toast.success(`CRM ${checked ? 'enabled' : 'disabled'} for ${partner.name}`);
+                                loadPartners();
+                              }}
+                            />
+                          </div>
+                        </TableCell>
                           <div className="flex items-center gap-1">
                             <Button variant="ghost" size="sm" onClick={() => { setViewingPartner(partner); setIsViewDialogOpen(true); }}><Eye className="w-4 h-4" /></Button>
                             <Button variant="ghost" size="sm" onClick={() => openEditDialog(partner)}><Pencil className="w-4 h-4" /></Button>
