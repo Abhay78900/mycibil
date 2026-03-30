@@ -357,7 +357,6 @@ export default function AdminApiLogs() {
             </CardContent>
           </Card>
         </div>
-      </main>
 
       {/* View Dialog */}
       <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
