@@ -24,6 +24,7 @@ const menuItems = [
   { icon: Users, label: 'Clients', path: '/partner/clients' },
   { icon: FileText, label: 'Reports', path: '/partner/reports' },
   { icon: Wallet, label: 'Wallet', path: '/partner/wallet' },
+  { icon: User, label: 'Profile', path: '/partner/profile' },
 ];
 
 export default function PartnerSidebar({ partner, onLogout }: PartnerSidebarProps) {
