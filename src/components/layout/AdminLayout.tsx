@@ -24,9 +24,14 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
   return (
     <div className="flex min-h-screen bg-background">
-      {/* Desktop sidebar — collapsible */}
-      <div className={`hidden lg:block transition-all duration-300 shrink-0 ${desktopCollapsed ? 'w-0 overflow-hidden' : ''}`}>
-        <AdminSidebar onLogout={handleLogout} />
+      {/* Desktop sidebar — collapsible with slide */}
+      <div
+        className="hidden lg:block shrink-0 transition-[width,opacity] duration-300 ease-in-out overflow-hidden"
+        style={{ width: desktopCollapsed ? 0 : 256, opacity: desktopCollapsed ? 0 : 1 }}
+      >
+        <div className="w-64 min-w-[256px]">
+          <AdminSidebar onLogout={handleLogout} />
+        </div>
       </div>
 
       {/* Desktop collapse/expand button */}
