@@ -15,7 +15,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Search, Building2, Loader2, Plus, Wallet, Percent, Pencil, Phone, Mail, MapPin, CreditCard, Eye } from 'lucide-react';
+import { Search, Building2, Loader2, Plus, Wallet, Percent, Pencil, Phone, Mail, MapPin, CreditCard, Eye, Lock, Unlock } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 
 interface Partner {
@@ -37,6 +38,7 @@ interface Partner {
   occupation?: string;
   investment?: string;
   contact_person?: string;
+  is_crm_enabled?: boolean;
 }
 
 export default function AdminPartners() {
@@ -205,6 +207,7 @@ export default function AdminPartners() {
                       <TableHead>Wallet</TableHead>
                       <TableHead>Commission</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead>CRM</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -233,6 +236,20 @@ export default function AdminPartners() {
                         <TableCell><div className="flex items-center gap-2"><Wallet className="w-4 h-4 text-primary" /><span className="font-bold">₹{Number(partner.wallet_balance || 0).toLocaleString()}</span></div></TableCell>
                         <TableCell><div className="flex items-center gap-2"><Percent className="w-4 h-4 text-muted-foreground" /><span>{partner.commission_rate}%</span></div></TableCell>
                         <TableCell><Badge variant={partner.status === 'active' ? 'default' : 'secondary'}>{partner.status?.toUpperCase()}</Badge></TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            {(partner as any).is_crm_enabled ? <Unlock className="w-4 h-4 text-green-600" /> : <Lock className="w-4 h-4 text-destructive" />}
+                            <Switch
+                              checked={(partner as any).is_crm_enabled ?? false}
+                              onCheckedChange={async (checked) => {
+                                const { error } = await supabase.from('partners').update({ is_crm_enabled: checked } as any).eq('id', partner.id);
+                                if (error) { toast.error('Failed to update CRM access'); return; }
+                                toast.success(`CRM ${checked ? 'enabled' : 'disabled'} for ${partner.name}`);
+                                loadPartners();
+                              }}
+                            />
+                          </div>
+                        </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-1">
                             <Button variant="ghost" size="sm" onClick={() => { setViewingPartner(partner); setIsViewDialogOpen(true); }}><Eye className="w-4 h-4" /></Button>

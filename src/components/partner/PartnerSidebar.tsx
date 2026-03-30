@@ -8,7 +8,8 @@ import {
   Plus,
   Building2,
   FileCheck,
-  User
+  User,
+  Briefcase
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -19,14 +20,20 @@ interface PartnerSidebarProps {
   onLogout: () => void;
 }
 
-const menuItems = [
-  { icon: LayoutDashboard, label: 'Dashboard', path: '/partner' },
-  { icon: Plus, label: 'Generate Report', path: '/partner/generate' },
-  { icon: Users, label: 'Clients', path: '/partner/clients' },
-  { icon: FileText, label: 'Reports', path: '/partner/reports' },
-  { icon: Wallet, label: 'Wallet', path: '/partner/wallet' },
-  { icon: User, label: 'Profile', path: '/partner/profile' },
-];
+const getMenuItems = (isCrmEnabled: boolean) => {
+  const items = [
+    { icon: LayoutDashboard, label: 'Dashboard', path: '/partner' },
+    { icon: Plus, label: 'Generate Report', path: '/partner/generate' },
+    { icon: Users, label: 'Clients', path: '/partner/clients' },
+    { icon: FileText, label: 'Reports', path: '/partner/reports' },
+    { icon: Wallet, label: 'Wallet', path: '/partner/wallet' },
+  ];
+  if (isCrmEnabled) {
+    items.push({ icon: Briefcase, label: 'Loan CRM', path: '/partner/crm' });
+  }
+  items.push({ icon: User, label: 'Profile', path: '/partner/profile' });
+  return items;
+};
 
 export default function PartnerSidebar({ partner, onLogout }: PartnerSidebarProps) {
   const location = useLocation();
@@ -55,7 +62,7 @@ export default function PartnerSidebar({ partner, onLogout }: PartnerSidebarProp
       </div>
 
       <nav className="flex-1 p-4 space-y-1">
-        {menuItems.map((item) => {
+        {getMenuItems(partner?.is_crm_enabled ?? false).map((item) => {
           const isActive = location.pathname === item.path;
           return (
             <Link

@@ -258,6 +258,86 @@ export type Database = {
           },
         ]
       }
+      loan_clients: {
+        Row: {
+          aadhar_number: string | null
+          application_status: string
+          bank_statement_url: string | null
+          cibil_score: number | null
+          created_at: string
+          email: string | null
+          existing_emis: number | null
+          full_name: string
+          id: string
+          loan_type: string
+          mobile: string
+          monthly_income: number | null
+          next_followup_date: string | null
+          notes: string | null
+          occupation: string
+          pan_number: string | null
+          partner_id: string
+          required_amount: number | null
+          salary_slip_url: string | null
+          tenure_months: number | null
+          updated_at: string
+        }
+        Insert: {
+          aadhar_number?: string | null
+          application_status?: string
+          bank_statement_url?: string | null
+          cibil_score?: number | null
+          created_at?: string
+          email?: string | null
+          existing_emis?: number | null
+          full_name: string
+          id?: string
+          loan_type?: string
+          mobile: string
+          monthly_income?: number | null
+          next_followup_date?: string | null
+          notes?: string | null
+          occupation?: string
+          pan_number?: string | null
+          partner_id: string
+          required_amount?: number | null
+          salary_slip_url?: string | null
+          tenure_months?: number | null
+          updated_at?: string
+        }
+        Update: {
+          aadhar_number?: string | null
+          application_status?: string
+          bank_statement_url?: string | null
+          cibil_score?: number | null
+          created_at?: string
+          email?: string | null
+          existing_emis?: number | null
+          full_name?: string
+          id?: string
+          loan_type?: string
+          mobile?: string
+          monthly_income?: number | null
+          next_followup_date?: string | null
+          notes?: string | null
+          occupation?: string
+          pan_number?: string | null
+          partner_id?: string
+          required_amount?: number | null
+          salary_slip_url?: string | null
+          tenure_months?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loan_clients_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       partner_leads: {
         Row: {
           admin_notes: string | null
@@ -335,6 +415,7 @@ export type Database = {
           franchise_id: string
           id: string
           investment: string | null
+          is_crm_enabled: boolean
           mobile: string | null
           name: string
           notes: string | null
@@ -359,6 +440,7 @@ export type Database = {
           franchise_id: string
           id?: string
           investment?: string | null
+          is_crm_enabled?: boolean
           mobile?: string | null
           name: string
           notes?: string | null
@@ -383,6 +465,7 @@ export type Database = {
           franchise_id?: string
           id?: string
           investment?: string | null
+          is_crm_enabled?: boolean
           mobile?: string | null
           name?: string
           notes?: string | null

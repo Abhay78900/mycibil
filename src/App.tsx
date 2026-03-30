@@ -34,6 +34,7 @@ import PartnerClients from "./pages/partner/PartnerClients";
 import PartnerReports from "./pages/partner/PartnerReports";
 import PartnerWallet from "./pages/partner/PartnerWallet";
 import PartnerProfile from "./pages/partner/PartnerProfile";
+import PartnerCRM from "./pages/partner/PartnerCRM";
 
 const queryClient = new QueryClient();
 
@@ -73,6 +74,7 @@ const App = () => (
             <Route path="/partner/clients" element={<PartnerClients />} />
             <Route path="/partner/reports" element={<PartnerReports />} />
             <Route path="/partner/wallet" element={<PartnerWallet />} />
+            <Route path="/partner/crm" element={<PartnerCRM />} />
             <Route path="/partner/profile" element={<PartnerProfile />} />
             
             <Route path="*" element={<NotFound />} />
