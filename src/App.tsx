@@ -34,6 +34,7 @@ import PartnerClients from "./pages/partner/PartnerClients";
 import PartnerReports from "./pages/partner/PartnerReports";
 import PartnerWallet from "./pages/partner/PartnerWallet";
 import PartnerProfile from "./pages/partner/PartnerProfile";
+import PartnerCRM from "./pages/partner/PartnerCRM";
 
 const queryClient = new QueryClient();
 
