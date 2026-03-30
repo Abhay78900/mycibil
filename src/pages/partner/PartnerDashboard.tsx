@@ -160,6 +160,9 @@ export default function PartnerDashboard() {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2"><Label htmlFor="dob">Date of Birth</Label><Input id="dob" type="date" value={formData.dateOfBirth} onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })} /></div>
+                <div className="space-y-2"><Label htmlFor="mobileNumber">Mobile Number *</Label><Input id="mobileNumber" type="tel" value={formData.mobileNumber} onChange={(e) => setFormData({ ...formData, mobileNumber: e.target.value })} placeholder="10-digit mobile number" maxLength={10} required /></div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Gender *</Label>
                   <RadioGroup value={formData.gender} onValueChange={(value) => setFormData({ ...formData, gender: value })} className="flex gap-4 pt-2">
