@@ -209,6 +209,7 @@ export default function AdminPartners() {
                       <TableHead>Status</TableHead>
                       <TableHead>CRM</TableHead>
                       <TableHead>Actions</TableHead>
+                    </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredPartners.map((partner) => (
@@ -249,6 +250,7 @@ export default function AdminPartners() {
                             />
                           </div>
                         </TableCell>
+                        <TableCell>
                           <div className="flex items-center gap-1">
                             <Button variant="ghost" size="sm" onClick={() => { setViewingPartner(partner); setIsViewDialogOpen(true); }}><Eye className="w-4 h-4" /></Button>
                             <Button variant="ghost" size="sm" onClick={() => openEditDialog(partner)}><Pencil className="w-4 h-4" /></Button>
