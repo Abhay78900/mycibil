@@ -305,7 +305,7 @@ export default function AdminPartners() {
                 </Avatar>
                 <div>
                   <h3 className="text-lg font-bold text-foreground">{viewingPartner.name}</h3>
-                  <p className="text-sm font-mono text-muted-foreground">{viewingPartner.franchise_id}</p>
+                  <Badge variant={viewingPartner.status === 'active' ? 'default' : 'secondary'} className="mt-1">{viewingPartner.status?.toUpperCase()}</Badge>
                   <Badge variant={viewingPartner.status === 'active' ? 'default' : 'secondary'} className="mt-1">{viewingPartner.status?.toUpperCase()}</Badge>
                 </div>
               </div>
