@@ -24,6 +24,7 @@ export default function Payment() {
   const [expiry, setExpiry] = useState('');
   const [cvv, setCvv] = useState('');
   const [name, setName] = useState('');
+  const { fetchMultipleBureaus } = useBureauApi();
 
   useEffect(() => {
     if (reportId) {
