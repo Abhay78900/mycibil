@@ -33,6 +33,10 @@ interface Partner {
   email?: string;
   profile_picture_url?: string;
   notes?: string;
+  city?: string;
+  occupation?: string;
+  investment?: string;
+  contact_person?: string;
 }
 
 export default function AdminPartners() {
