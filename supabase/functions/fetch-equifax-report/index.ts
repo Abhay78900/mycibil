@@ -111,8 +111,11 @@ Deno.serve(async (req) => {
       .eq('key', 'api_environment')
       .maybeSingle();
 
-    const isSandboxMode = sandboxSetting?.value?.enabled ?? true;
-    const apiEnvironment = apiEnvSetting?.value?.environment ?? 'uat';
+    const sandboxValue = sandboxSetting?.value as Record<string, any> | null;
+    const isSandboxMode = sandboxValue?.enabled === true;
+    const apiEnvValue = apiEnvSetting?.value as Record<string, any> | null;
+    const apiEnvironment = apiEnvValue?.environment ?? 'uat';
+    console.log('[EQUIFAX] Sandbox mode:', isSandboxMode, '| API env:', apiEnvironment, '| Raw sandbox value:', JSON.stringify(sandboxValue));
 
     let equifaxScore: number;
     let rawEquifaxData: any;
