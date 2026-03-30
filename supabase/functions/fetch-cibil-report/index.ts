@@ -267,30 +267,24 @@ Deno.serve(async (req) => {
           rawCibilData._apiError = errMsg;
         }
 
+        if (!rawCibilData) {
         cibilScore = extractCibilScore(apiData);
         rawCibilData = transformCibilToUnifiedReport(apiData, {
-          bureauName: 'TransUnion CIBIL',
-          reportId,
-          fullName,
-          panNumber: normalizedPan,
-          dateOfBirth,
-          gender,
+          bureauName: 'TransUnion CIBIL', reportId, fullName,
+          panNumber: normalizedPan, dateOfBirth, gender,
         });
-
-        // Log successful API call
-        await logBureauApiCall(supabase, {
-          reportId,
-          userId: userId!,
-          partnerId,
-          bureauCode: 'cibil',
-          bureauName: 'TransUnion CIBIL',
-          requestPayload: { ...requestBody, api_key: '[REDACTED]', token_id: '[REDACTED]' },
-          responseJson: apiData,
-          responseStatus: 200,
-          isSandbox: false,
-          errorMessage: null,
-          processingTimeMs: Date.now() - startTime
-        });
+        if (userId) {
+          await logBureauApiCall(supabase, {
+            reportId, userId, partnerId,
+            bureauCode: 'cibil', bureauName: 'TransUnion CIBIL',
+            requestPayload: { ...requestBody, api_key: '[REDACTED]', token_id: '[REDACTED]' },
+            responseJson: apiData, responseStatus: 200,
+            isSandbox: false, errorMessage: null, processingTimeMs: Date.now() - startTime
+          });
+        }
+        } // end success check
+        } // end JSON parse check
+        } // end HTML check
 
       } catch (fetchError: any) {
         console.error('[CIBIL] Fetch error:', fetchError);
