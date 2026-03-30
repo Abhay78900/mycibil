@@ -32,6 +32,7 @@ interface Partner {
   pan_number?: string;
   email?: string;
   profile_picture_url?: string;
+  notes?: string;
 }
 
 export default function AdminPartners() {
