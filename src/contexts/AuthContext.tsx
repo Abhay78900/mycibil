@@ -34,7 +34,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        if (event === 'SIGNED_OUT' && !isManualSignOut && user) {
+        if (event === 'SIGNED_OUT' && !isManualSignOut && userRef.current) {
           // Session was terminated externally (another device logged in)
           import('sonner').then(({ toast }) => {
             toast.error('Your session was terminated because this account logged in on another device.');
