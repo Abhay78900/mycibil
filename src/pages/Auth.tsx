@@ -101,7 +101,7 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen gradient-hero flex items-center justify-center px-4 py-12">
+    <div className="min-h-screen gradient-hero flex items-center justify-center px-4 py-12 relative">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
