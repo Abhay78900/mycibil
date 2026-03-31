@@ -40,6 +40,7 @@ interface Partner {
   contact_person?: string;
   is_crm_enabled?: boolean;
   max_client_limit?: number;
+  single_session?: boolean;
 }
 
 export default function AdminPartners() {
@@ -59,6 +60,7 @@ export default function AdminPartners() {
     mobile: '', address: '', pan_number: '', partner_email: '', notes: '',
     city: '', occupation: '', investment: '', contact_person: '',
     max_client_limit: '50',
+    single_session: false,
   });
 
   useEffect(() => {
@@ -126,6 +128,7 @@ export default function AdminPartners() {
         investment: formData.investment || null,
         contact_person: formData.contact_person || null,
         max_client_limit: parseInt(formData.max_client_limit) || 50,
+        single_session: formData.single_session,
       } as any).eq('id', editingPartner.id);
       if (error) throw error;
       toast.success('Partner updated successfully!');
@@ -135,7 +138,7 @@ export default function AdminPartners() {
     } catch (error: any) { toast.error(error.message || 'Failed to update partner'); } finally { setIsSaving(false); }
   };
 
-  const resetFormData = () => setFormData({ name: '', email: '', password: '', commission_rate: '10', wallet_balance: '0', status: 'active', mobile: '', address: '', pan_number: '', partner_email: '', notes: '', city: '', occupation: '', investment: '', contact_person: '', max_client_limit: '50' });
+  const resetFormData = () => setFormData({ name: '', email: '', password: '', commission_rate: '10', wallet_balance: '0', status: 'active', mobile: '', address: '', pan_number: '', partner_email: '', notes: '', city: '', occupation: '', investment: '', contact_person: '', max_client_limit: '50', single_session: false });
 
   const openEditDialog = (partner: Partner) => {
     setEditingPartner(partner);
@@ -154,6 +157,7 @@ export default function AdminPartners() {
       investment: partner.investment || '',
       contact_person: partner.contact_person || '',
       max_client_limit: String((partner as any).max_client_limit ?? 50),
+      single_session: (partner as any).single_session ?? false,
     });
     setIsEditDialogOpen(true);
   };
@@ -406,6 +410,13 @@ export default function AdminPartners() {
                   <SelectItem value="suspended">Suspended</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="flex items-center justify-between p-4 bg-accent/30 rounded-lg border border-border">
+              <div className="space-y-1">
+                <Label className="text-sm font-medium">Limit to One Active Login</Label>
+                <p className="text-xs text-muted-foreground">Automatically sign out of other devices when this partner logs in.</p>
+              </div>
+              <Switch checked={formData.single_session} onCheckedChange={(checked) => setFormData({ ...formData, single_session: checked })} />
             </div>
             <Button className="w-full" onClick={handleEditPartner} disabled={isSaving}>
               {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Pencil className="w-4 h-4 mr-2" />}Update Partner

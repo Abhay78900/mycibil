@@ -481,6 +481,7 @@ export type Database = {
           pan_number: string | null
           profile_picture_url: string | null
           report_count: number | null
+          single_session: boolean
           status: string | null
           total_revenue: number | null
           updated_at: string | null
@@ -507,6 +508,7 @@ export type Database = {
           pan_number?: string | null
           profile_picture_url?: string | null
           report_count?: number | null
+          single_session?: boolean
           status?: string | null
           total_revenue?: number | null
           updated_at?: string | null
@@ -533,6 +535,7 @@ export type Database = {
           pan_number?: string | null
           profile_picture_url?: string | null
           report_count?: number | null
+          single_session?: boolean
           status?: string | null
           total_revenue?: number | null
           updated_at?: string | null

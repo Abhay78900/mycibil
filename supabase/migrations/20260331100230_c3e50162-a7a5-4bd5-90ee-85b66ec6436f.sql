@@ -1,0 +1,1 @@
+ALTER TABLE public.partners ADD COLUMN single_session boolean NOT NULL DEFAULT false;
