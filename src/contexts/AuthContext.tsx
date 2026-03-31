@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -23,10 +23,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [profile, setProfile] = useState<any>(null);
+  const manualSignOutRef = useRef<(val: boolean) => void>(() => {});
+  const userRef = useRef<User | null>(null);
+
+  // Keep userRef in sync
+  useEffect(() => { userRef.current = user; }, [user]);
 
   useEffect(() => {
+    let isManualSignOut = false;
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        if (event === 'SIGNED_OUT' && !isManualSignOut && userRef.current) {
+          // Session was terminated externally (another device logged in)
+          import('sonner').then(({ toast }) => {
+            toast.error('Your session was terminated because this account logged in on another device.');
+          });
+        }
+
         setSession(session);
         setUser(session?.user ?? null);
         
@@ -41,6 +55,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
     );
+
+    // Store ref to control manual sign out flag
+    manualSignOutRef.current = (val: boolean) => { isManualSignOut = val; };
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
@@ -91,12 +108,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signIn = async (email: string, password: string) => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     
-    // After successful login, enforce session limits for partners
+    // After successful login, sign out all other sessions to enforce single-session
     if (!error && data?.session) {
       try {
-        await supabase.functions.invoke('enforce-session-limit', {
-          headers: { Authorization: `Bearer ${data.session.access_token}` }
-        });
+        await supabase.auth.signOut({ scope: 'others' });
       } catch (e) {
         console.error('Session enforcement error:', e);
       }
@@ -106,6 +121,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
+    manualSignOutRef.current(true);
     await supabase.auth.signOut();
     setUser(null);
     setSession(null);
