@@ -108,12 +108,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signIn = async (email: string, password: string) => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     
-    // After successful login, enforce session limits for partners
+    // After successful login, sign out all other sessions to enforce single-session
     if (!error && data?.session) {
       try {
-        await supabase.functions.invoke('enforce-session-limit', {
-          headers: { Authorization: `Bearer ${data.session.access_token}` }
-        });
+        await supabase.auth.signOut({ scope: 'others' });
       } catch (e) {
         console.error('Session enforcement error:', e);
       }
