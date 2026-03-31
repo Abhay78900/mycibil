@@ -157,7 +157,7 @@ export default function AdminPartners() {
       investment: partner.investment || '',
       contact_person: partner.contact_person || '',
       max_client_limit: String((partner as any).max_client_limit ?? 50),
-      single_session: (partner as any).single_session ?? false,
+      max_sessions: String((partner as any).max_sessions ?? 1),
     });
     setIsEditDialogOpen(true);
   };
