@@ -40,7 +40,7 @@ interface Partner {
   contact_person?: string;
   is_crm_enabled?: boolean;
   max_client_limit?: number;
-  single_session?: boolean;
+  max_sessions?: number;
 }
 
 export default function AdminPartners() {
