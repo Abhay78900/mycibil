@@ -298,10 +298,11 @@ export default function CreditReportPage() {
                   variant="outline" 
                   size="sm"
                   onClick={() => handleDownload(selectedBureau)}
+                  disabled={isDownloading}
                   className="gap-2"
                 >
-                  <Download className="w-4 h-4" />
-                  <span className="hidden sm:inline">Download {bureauConfig[selectedBureau]?.name}</span>
+                  {isDownloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                  <span className="hidden sm:inline">{isDownloading ? 'Generating...' : `Download ${bureauConfig[selectedBureau]?.name}`}</span>
                 </Button>
               )}
               <Button 
