@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 type UserRole = 'admin' | 'partner' | 'user';
 
@@ -23,22 +24,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [profile, setProfile] = useState<any>(null);
-  const manualSignOutRef = useRef<(val: boolean) => void>(() => {});
-  const userRef = useRef<User | null>(null);
-
-  // Keep userRef in sync
-  useEffect(() => { userRef.current = user; }, [user]);
+  const sessionIdRef = useRef<string | null>(null);
+  const isManualSignOutRef = useRef(false);
+  const realtimeChannelRef = useRef<any>(null);
 
   useEffect(() => {
-    let isManualSignOut = false;
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        if (event === 'SIGNED_OUT' && !isManualSignOut && userRef.current) {
-          // Session was terminated externally (another device logged in)
-          import('sonner').then(({ toast }) => {
+        if (event === 'SIGNED_OUT' && !isManualSignOutRef.current) {
+          // Only show toast if we had a session before (forced sign out)
+          if (sessionIdRef.current) {
             toast.error('Your session was terminated because this account logged in on another device.');
-          });
+            sessionIdRef.current = null;
+          }
         }
 
         setSession(session);
@@ -52,12 +50,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUserRole(null);
           setProfile(null);
           setLoading(false);
+          // Cleanup realtime channel when signed out
+          if (realtimeChannelRef.current) {
+            supabase.removeChannel(realtimeChannelRef.current);
+            realtimeChannelRef.current = null;
+          }
+        }
+
+        // Reset manual sign out flag
+        if (event === 'SIGNED_OUT') {
+          isManualSignOutRef.current = false;
         }
       }
     );
-
-    // Store ref to control manual sign out flag
-    manualSignOutRef.current = (val: boolean) => { isManualSignOut = val; };
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
@@ -71,6 +76,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  const setupRealtimeSessionWatch = (userId: string, currentSessionId: string) => {
+    // Remove any existing channel
+    if (realtimeChannelRef.current) {
+      supabase.removeChannel(realtimeChannelRef.current);
+    }
+
+    const channel = supabase
+      .channel(`session-watch:${userId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'profiles',
+          filter: `id=eq.${userId}`,
+        },
+        (payload) => {
+          const newSessionId = (payload.new as any).active_session_id;
+          // If the session ID changed and it's not ours, force sign out
+          if (newSessionId && newSessionId !== currentSessionId) {
+            sessionIdRef.current = currentSessionId; // Keep ref so toast shows
+            supabase.auth.signOut();
+          }
+        }
+      )
+      .subscribe();
+
+    realtimeChannelRef.current = channel;
+  };
 
   const fetchUserData = async (userId: string) => {
     try {
@@ -108,20 +143,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signIn = async (email: string, password: string) => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     
-    // After successful login, sign out all other sessions to enforce single-session
-    if (!error && data?.session) {
-      try {
-        await supabase.auth.signOut({ scope: 'others' });
-      } catch (e) {
-        console.error('Session enforcement error:', e);
-      }
+    if (!error && data?.session && data?.user) {
+      // Generate a unique session ID for this login
+      const newSessionId = crypto.randomUUID();
+      sessionIdRef.current = newSessionId;
+
+      // Write the new session ID to the profile — this triggers realtime on other devices
+      await supabase
+        .from('profiles')
+        .update({ active_session_id: newSessionId } as any)
+        .eq('id', data.user.id);
+
+      // Start watching for session changes on this device
+      setupRealtimeSessionWatch(data.user.id, newSessionId);
     }
     
     return { error };
   };
 
   const signOut = async () => {
-    manualSignOutRef.current(true);
+    isManualSignOutRef.current = true;
+    sessionIdRef.current = null;
     await supabase.auth.signOut();
     setUser(null);
     setSession(null);
