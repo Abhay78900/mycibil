@@ -40,7 +40,7 @@ interface Partner {
   contact_person?: string;
   is_crm_enabled?: boolean;
   max_client_limit?: number;
-  single_session?: boolean;
+  max_sessions?: number;
 }
 
 export default function AdminPartners() {
@@ -60,7 +60,7 @@ export default function AdminPartners() {
     mobile: '', address: '', pan_number: '', partner_email: '', notes: '',
     city: '', occupation: '', investment: '', contact_person: '',
     max_client_limit: '50',
-    single_session: true,
+    max_sessions: '1',
   });
 
   useEffect(() => {
@@ -128,7 +128,7 @@ export default function AdminPartners() {
         investment: formData.investment || null,
         contact_person: formData.contact_person || null,
         max_client_limit: parseInt(formData.max_client_limit) || 50,
-        single_session: formData.single_session,
+        max_sessions: parseInt(formData.max_sessions) || 1,
       } as any).eq('id', editingPartner.id);
       if (error) throw error;
       toast.success('Partner updated successfully!');
@@ -138,7 +138,7 @@ export default function AdminPartners() {
     } catch (error: any) { toast.error(error.message || 'Failed to update partner'); } finally { setIsSaving(false); }
   };
 
-  const resetFormData = () => setFormData({ name: '', email: '', password: '', commission_rate: '10', wallet_balance: '0', status: 'active', mobile: '', address: '', pan_number: '', partner_email: '', notes: '', city: '', occupation: '', investment: '', contact_person: '', max_client_limit: '50', single_session: true });
+  const resetFormData = () => setFormData({ name: '', email: '', password: '', commission_rate: '10', wallet_balance: '0', status: 'active', mobile: '', address: '', pan_number: '', partner_email: '', notes: '', city: '', occupation: '', investment: '', contact_person: '', max_client_limit: '50', max_sessions: '1' });
 
   const openEditDialog = (partner: Partner) => {
     setEditingPartner(partner);
@@ -157,7 +157,7 @@ export default function AdminPartners() {
       investment: partner.investment || '',
       contact_person: partner.contact_person || '',
       max_client_limit: String((partner as any).max_client_limit ?? 50),
-      single_session: (partner as any).single_session ?? false,
+      max_sessions: String((partner as any).max_sessions ?? 1),
     });
     setIsEditDialogOpen(true);
   };
@@ -411,17 +411,18 @@ export default function AdminPartners() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex items-center justify-between p-4 bg-accent/30 rounded-lg border border-border">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <Label className="text-sm font-medium">Limit to One Active Login</Label>
-                  <Badge variant={formData.single_session ? 'default' : 'secondary'} className="text-xs">
-                    {formData.single_session ? '1 Session' : 'No Limit'}
-                  </Badge>
-                </div>
-                <p className="text-xs text-muted-foreground">Automatically sign out of other devices when this partner logs in.</p>
-              </div>
-              <Switch checked={formData.single_session} onCheckedChange={(checked) => setFormData({ ...formData, single_session: checked })} />
+            <div className="space-y-2">
+              <Label>Active Login Sessions Allowed</Label>
+              <Select value={formData.max_sessions} onValueChange={(value) => setFormData({ ...formData, max_sessions: value })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">1 Session (Default)</SelectItem>
+                  <SelectItem value="2">2 Sessions</SelectItem>
+                  <SelectItem value="3">3 Sessions</SelectItem>
+                  <SelectItem value="5">5 Sessions</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">Logging in beyond this limit will automatically sign out the oldest session.</p>
             </div>
             <Button className="w-full" onClick={handleEditPartner} disabled={isSaving}>
               {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Pencil className="w-4 h-4 mr-2" />}Update Partner
