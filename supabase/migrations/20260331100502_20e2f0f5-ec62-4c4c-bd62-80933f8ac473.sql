@@ -1,0 +1,1 @@
+ALTER TABLE public.partners ALTER COLUMN single_session SET DEFAULT true;
