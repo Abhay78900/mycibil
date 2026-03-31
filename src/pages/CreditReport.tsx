@@ -297,40 +297,6 @@ export default function CreditReportPage() {
     }
   };
 
-  const generateReportContent = (bureau: string, score: number): string => {
-    if (!report) return '';
-    const config = bureauConfig[bureau];
-    const reportDate = format(new Date(), 'EEE MMM dd yyyy');
-    const controlNumber = Math.floor(Math.random() * 9000000000) + 1000000000;
-    const activeLoans = Array.isArray(report.active_loans) ? report.active_loans : [];
-    const creditCards = Array.isArray(report.credit_cards) ? report.credit_cards : [];
-
-    return `
-${'═'.repeat(80)}
-                              ${config.fullName.toUpperCase()} REPORT
-${'═'.repeat(80)}
-
-DATE: ${reportDate}
-CONTROL NUMBER: ${controlNumber}
-
-${'─'.repeat(80)}
-${config.name} SCORE: ${score}
-${'─'.repeat(80)}
-
-PERSONAL INFORMATION
-Name: ${report.full_name}
-PAN: ${report.pan_number}
-
-ACCOUNT SUMMARY
-Active Loans: ${activeLoans.length}
-Credit Cards: ${creditCards.length}
-
-${'═'.repeat(80)}
-                        END OF CREDIT INFORMATION REPORT
-${'═'.repeat(80)}
-    `;
-  };
-
   const getBackPath = () => {
     if (userRole === 'admin') return '/admin/reports';
     if (userRole === 'partner') return '/partner/reports';
