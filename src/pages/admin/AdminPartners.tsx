@@ -60,7 +60,7 @@ export default function AdminPartners() {
     mobile: '', address: '', pan_number: '', partner_email: '', notes: '',
     city: '', occupation: '', investment: '', contact_person: '',
     max_client_limit: '50',
-    single_session: false,
+    single_session: true,
   });
 
   useEffect(() => {
