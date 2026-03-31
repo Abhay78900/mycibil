@@ -28,6 +28,8 @@ export default function CreditReportPage() {
   const [searchParams] = useSearchParams();
   const { userRole, signOut } = useAuth();
   const [selectedBureau, setSelectedBureau] = React.useState<string | null>(null);
+  const [isDownloading, setIsDownloading] = React.useState(false);
+  const reportContentRef = React.useRef<HTMLDivElement>(null);
   const [isLoading, setIsLoading] = React.useState(true);
   const [report, setReport] = React.useState<CreditReportType | null>(null);
 
