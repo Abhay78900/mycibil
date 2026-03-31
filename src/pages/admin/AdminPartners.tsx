@@ -413,7 +413,12 @@ export default function AdminPartners() {
             </div>
             <div className="flex items-center justify-between p-4 bg-accent/30 rounded-lg border border-border">
               <div className="space-y-1">
-                <Label className="text-sm font-medium">Limit to One Active Login</Label>
+                <div className="flex items-center gap-2">
+                  <Label className="text-sm font-medium">Limit to One Active Login</Label>
+                  <Badge variant={formData.single_session ? 'default' : 'secondary'} className="text-xs">
+                    {formData.single_session ? '1 Session' : 'No Limit'}
+                  </Badge>
+                </div>
                 <p className="text-xs text-muted-foreground">Automatically sign out of other devices when this partner logs in.</p>
               </div>
               <Switch checked={formData.single_session} onCheckedChange={(checked) => setFormData({ ...formData, single_session: checked })} />
