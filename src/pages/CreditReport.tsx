@@ -400,18 +400,14 @@ export default function CreditReportPage() {
                       </div>
                     </div>
                   ) : reportData ? (
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.3 }}
-                    >
+                    <div ref={selectedBureau === bureau ? reportContentRef : undefined}>
                       <BureauReportView 
                         report={reportData}
                         bureau={bureau}
                         config={bureauConfig[bureau]}
                         score={getScore(bureau) || 0}
                       />
-                    </motion.div>
+                    </div>
                   ) : (
                     <div className="flex items-center justify-center py-20">
                       <p className="text-muted-foreground">No data available</p>
