@@ -102,6 +102,14 @@ export default function Auth() {
 
   return (
     <div className="min-h-screen gradient-hero flex items-center justify-center px-4 py-12 relative">
+      <Button
+        variant="ghost"
+        size="icon"
+        className="absolute top-4 left-4 z-10"
+        onClick={() => navigate('/')}
+      >
+        <ArrowLeft className="w-5 h-5" />
+      </Button>
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
