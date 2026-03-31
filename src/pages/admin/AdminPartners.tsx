@@ -60,7 +60,7 @@ export default function AdminPartners() {
     mobile: '', address: '', pan_number: '', partner_email: '', notes: '',
     city: '', occupation: '', investment: '', contact_person: '',
     max_client_limit: '50',
-    single_session: false,
+    single_session: true,
   });
 
   useEffect(() => {
@@ -138,7 +138,7 @@ export default function AdminPartners() {
     } catch (error: any) { toast.error(error.message || 'Failed to update partner'); } finally { setIsSaving(false); }
   };
 
-  const resetFormData = () => setFormData({ name: '', email: '', password: '', commission_rate: '10', wallet_balance: '0', status: 'active', mobile: '', address: '', pan_number: '', partner_email: '', notes: '', city: '', occupation: '', investment: '', contact_person: '', max_client_limit: '50', single_session: false });
+  const resetFormData = () => setFormData({ name: '', email: '', password: '', commission_rate: '10', wallet_balance: '0', status: 'active', mobile: '', address: '', pan_number: '', partner_email: '', notes: '', city: '', occupation: '', investment: '', contact_person: '', max_client_limit: '50', single_session: true });
 
   const openEditDialog = (partner: Partner) => {
     setEditingPartner(partner);
@@ -413,7 +413,12 @@ export default function AdminPartners() {
             </div>
             <div className="flex items-center justify-between p-4 bg-accent/30 rounded-lg border border-border">
               <div className="space-y-1">
-                <Label className="text-sm font-medium">Limit to One Active Login</Label>
+                <div className="flex items-center gap-2">
+                  <Label className="text-sm font-medium">Limit to One Active Login</Label>
+                  <Badge variant={formData.single_session ? 'default' : 'secondary'} className="text-xs">
+                    {formData.single_session ? '1 Session' : 'No Limit'}
+                  </Badge>
+                </div>
                 <p className="text-xs text-muted-foreground">Automatically sign out of other devices when this partner logs in.</p>
               </div>
               <Switch checked={formData.single_session} onCheckedChange={(checked) => setFormData({ ...formData, single_session: checked })} />
