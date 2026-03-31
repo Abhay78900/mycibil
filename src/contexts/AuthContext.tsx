@@ -23,6 +23,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [profile, setProfile] = useState<any>(null);
+  const manualSignOutRef = useRef<(val: boolean) => void>(() => {});
+  const userRef = useRef<User | null>(null);
+
+  // Keep userRef in sync
+  useEffect(() => { userRef.current = user; }, [user]);
 
   useEffect(() => {
     let isManualSignOut = false;
