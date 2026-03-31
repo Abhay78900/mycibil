@@ -411,6 +411,13 @@ export default function AdminPartners() {
                 </SelectContent>
               </Select>
             </div>
+            <div className="flex items-center justify-between p-4 bg-accent/30 rounded-lg border border-border">
+              <div className="space-y-1">
+                <Label className="text-sm font-medium">Limit to One Active Login</Label>
+                <p className="text-xs text-muted-foreground">Automatically sign out of other devices when this partner logs in.</p>
+              </div>
+              <Switch checked={formData.single_session} onCheckedChange={(checked) => setFormData({ ...formData, single_session: checked })} />
+            </div>
             <Button className="w-full" onClick={handleEditPartner} disabled={isSaving}>
               {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Pencil className="w-4 h-4 mr-2" />}Update Partner
             </Button>
