@@ -89,7 +89,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    
+    // After successful login, enforce session limits for partners
+    if (!error && data?.session) {
+      try {
+        await supabase.functions.invoke('enforce-session-limit', {
+          headers: { Authorization: `Bearer ${data.session.access_token}` }
+        });
+      } catch (e) {
+        console.error('Session enforcement error:', e);
+      }
+    }
+    
     return { error };
   };
 
