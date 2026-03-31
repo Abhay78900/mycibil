@@ -411,17 +411,18 @@ export default function AdminPartners() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex items-center justify-between p-4 bg-accent/30 rounded-lg border border-border">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <Label className="text-sm font-medium">Limit to One Active Login</Label>
-                  <Badge variant={formData.single_session ? 'default' : 'secondary'} className="text-xs">
-                    {formData.single_session ? '1 Session' : 'No Limit'}
-                  </Badge>
-                </div>
-                <p className="text-xs text-muted-foreground">Automatically sign out of other devices when this partner logs in.</p>
-              </div>
-              <Switch checked={formData.single_session} onCheckedChange={(checked) => setFormData({ ...formData, single_session: checked })} />
+            <div className="space-y-2">
+              <Label>Active Login Sessions Allowed</Label>
+              <Select value={formData.max_sessions} onValueChange={(value) => setFormData({ ...formData, max_sessions: value })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">1 Session (Default)</SelectItem>
+                  <SelectItem value="2">2 Sessions</SelectItem>
+                  <SelectItem value="3">3 Sessions</SelectItem>
+                  <SelectItem value="5">5 Sessions</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">Logging in beyond this limit will automatically sign out the oldest session.</p>
             </div>
             <Button className="w-full" onClick={handleEditPartner} disabled={isSaving}>
               {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Pencil className="w-4 h-4 mr-2" />}Update Partner
