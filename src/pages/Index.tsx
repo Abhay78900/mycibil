@@ -234,14 +234,13 @@ export default function Index() {
                 <span className="text-sm font-medium">Partner Program</span>
               </div>
               <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4 font-display">
-                Become a CreditCheck Partner
+                {t('partner.title')}
               </h2>
               <p className="text-muted-foreground mb-6">
-                Start your own credit score business with zero investment risk. 
-                Join our growing network of 500+ partners across India and earn attractive commissions.
+                {t('partner.subtitle')}
               </p>
               <Button onClick={() => navigate('/become-partner')} size="xl" variant="hero" className="gap-2">
-                Apply as Partner
+                {t('partner.cta')}
                 <ArrowRight className="w-5 h-5" />
               </Button>
             </motion.div>
