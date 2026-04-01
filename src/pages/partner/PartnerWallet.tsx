@@ -68,9 +68,12 @@ export default function PartnerWallet() {
     }
 
     setIsAdding(true);
+    setIsDialogOpen(false);
 
     try {
       const reportsAdded = isReportCountMode ? calculateReportsFromAmount(amount) : 0;
+
+      toast.info('Creating payment order...');
 
       // Step 1: Create Razorpay order
       const { data: orderData, error: orderError } = await supabase.functions.invoke(
@@ -87,7 +90,13 @@ export default function PartnerWallet() {
         }
       );
 
-      if (orderError || !orderData?.order_id) {
+      console.log('Order response:', orderData, orderError);
+
+      if (orderError) {
+        throw new Error('Failed to create payment order');
+      }
+
+      if (!orderData?.order_id) {
         throw new Error(orderData?.error || 'Failed to create payment order');
       }
 
@@ -110,6 +119,7 @@ export default function PartnerWallet() {
           color: '#6366f1',
         },
         handler: async (response: any) => {
+          setIsAdding(true);
           await verifyAndComplete(response, amount, reportsAdded);
         },
         modal: {
@@ -120,6 +130,7 @@ export default function PartnerWallet() {
         },
       };
 
+      setIsAdding(false);
       const rzp = new window.Razorpay(options);
       rzp.on('payment.failed', (response: any) => {
         setIsAdding(false);
