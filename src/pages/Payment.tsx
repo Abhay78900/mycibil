@@ -3,14 +3,18 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import Header from '@/components/layout/Header';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useBureauApi } from '@/hooks/useBureauApi';
-import { Loader2, CreditCard, Lock, CheckCircle2, ArrowLeft } from 'lucide-react';
+import { Loader2, CreditCard, Lock, CheckCircle2, ArrowLeft, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
+
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
+}
 
 export default function Payment() {
   const { reportId } = useParams();
@@ -20,10 +24,6 @@ export default function Payment() {
   const [report, setReport] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
-  const [cardNumber, setCardNumber] = useState('');
-  const [expiry, setExpiry] = useState('');
-  const [cvv, setCvv] = useState('');
-  const [name, setName] = useState('');
   const { fetchMultipleBureaus } = useBureauApi();
 
   useEffect(() => {
@@ -31,6 +31,17 @@ export default function Payment() {
       fetchReport();
     }
   }, [reportId]);
+
+  useEffect(() => {
+    // Load Razorpay script
+    if (!document.getElementById('razorpay-script')) {
+      const script = document.createElement('script');
+      script.id = 'razorpay-script';
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.async = true;
+      document.body.appendChild(script);
+    }
+  }, []);
 
   const fetchReport = async () => {
     const { data, error } = await supabase
@@ -55,42 +66,94 @@ export default function Payment() {
   };
 
   const handlePayment = async () => {
-    if (!cardNumber || !expiry || !cvv || !name) {
-      toast.error('Please fill in all payment details');
+    if (!window.Razorpay) {
+      toast.error('Payment system is loading. Please try again.');
       return;
     }
 
     setProcessing(true);
 
     try {
-      // Simulate payment processing
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const amount = report?.amount_paid || 299;
 
-      // Update transaction status
-      await supabase
-        .from('transactions')
-        .update({ status: 'success', payment_method: 'card' })
-        .eq('report_id', reportId);
+      // Step 1: Create Razorpay order via edge function
+      const { data: orderData, error: orderError } = await supabase.functions.invoke(
+        'create-razorpay-order',
+        {
+          body: {
+            amount,
+            reportId: reportId!,
+            userId: user?.id,
+          },
+        }
+      );
 
-      // Unlock the report
-      const { error: unlockError, data: updatedData } = await supabase
-        .from('credit_reports')
-        .update({ report_status: 'unlocked' })
-        .eq('id', reportId)
-        .select();
-
-      if (unlockError) {
-        console.error('Report unlock failed:', unlockError);
-        throw unlockError;
+      if (orderError || !orderData?.order_id) {
+        throw new Error(orderData?.error || 'Failed to create payment order');
       }
 
-      if (!updatedData || updatedData.length === 0) {
-        throw new Error('Failed to unlock report - RLS policy may be blocking the update');
+      // Step 2: Open Razorpay checkout
+      const options = {
+        key: orderData.key_id,
+        amount: orderData.amount,
+        currency: orderData.currency,
+        name: 'Credit Scorewala',
+        description: `Credit Report - ${report?.selected_bureaus?.length || 4} Bureaus`,
+        order_id: orderData.order_id,
+        prefill: {
+          name: report?.full_name || '',
+          contact: report?.mobile_number || '',
+        },
+        theme: {
+          color: '#6366f1',
+        },
+        handler: async (response: any) => {
+          await verifyAndComplete(response);
+        },
+        modal: {
+          ondismiss: () => {
+            setProcessing(false);
+            toast.info('Payment cancelled');
+          },
+        },
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.on('payment.failed', (response: any) => {
+        setProcessing(false);
+        toast.error(`Payment failed: ${response.error?.description || 'Unknown error'}`);
+      });
+      rzp.open();
+    } catch (error: any) {
+      console.error('Payment error:', error);
+      toast.error(error.message || 'Payment failed. Please try again.');
+      setProcessing(false);
+    }
+  };
+
+  const verifyAndComplete = async (razorpayResponse: any) => {
+    try {
+      toast.info('Verifying payment...');
+
+      // Step 3: Verify payment server-side
+      const { data: verifyData, error: verifyError } = await supabase.functions.invoke(
+        'verify-razorpay-payment',
+        {
+          body: {
+            razorpay_order_id: razorpayResponse.razorpay_order_id,
+            razorpay_payment_id: razorpayResponse.razorpay_payment_id,
+            razorpay_signature: razorpayResponse.razorpay_signature,
+            reportId: reportId!,
+          },
+        }
+      );
+
+      if (verifyError || !verifyData?.verified) {
+        throw new Error(verifyData?.error || 'Payment verification failed');
       }
 
-      // Call bureau edge functions for selected bureaus
+      // Step 4: Fetch bureau reports
       const selectedBureaus = report?.selected_bureaus || ['cibil', 'experian', 'equifax', 'crif'];
-      
       toast.info('Fetching credit reports from bureaus...');
 
       const bureauResults = await fetchMultipleBureaus(selectedBureaus, {
@@ -102,7 +165,6 @@ export default function Payment() {
         gender: report.gender || undefined,
       });
 
-      // Check results
       const successCount = Object.values(bureauResults).filter(r => r.success).length;
       const failCount = Object.values(bureauResults).filter(r => !r.success).length;
 
@@ -115,8 +177,8 @@ export default function Payment() {
 
       navigate(`/report/${reportId}`);
     } catch (error: any) {
-      console.error('Payment error:', error);
-      toast.error('Payment failed. Please try again.');
+      console.error('Verification error:', error);
+      toast.error(error.message || 'Verification failed. Contact support.');
     } finally {
       setProcessing(false);
     }
@@ -164,53 +226,19 @@ export default function Payment() {
             </CardHeader>
             
             <CardContent className="pt-6 space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="name">Cardholder Name</Label>
-                <Input
-                  id="name"
-                  placeholder="John Doe"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="cardNumber">Card Number</Label>
-                <Input
-                  id="cardNumber"
-                  placeholder="4111 1111 1111 1111"
-                  value={cardNumber}
-                  onChange={(e) => setCardNumber(e.target.value.replace(/\D/g, '').slice(0, 16))}
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="expiry">Expiry Date</Label>
-                  <Input
-                    id="expiry"
-                    placeholder="MM/YY"
-                    value={expiry}
-                    onChange={(e) => setExpiry(e.target.value)}
-                    maxLength={5}
-                  />
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 p-4 rounded-xl bg-muted/30 border border-border">
+                  <ShieldCheck className="w-6 h-6 text-accent flex-shrink-0" />
+                  <div>
+                    <p className="font-medium text-sm">Secure Payment via Razorpay</p>
+                    <p className="text-xs text-muted-foreground">UPI, Cards, NetBanking, Wallets supported</p>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="cvv">CVV</Label>
-                  <Input
-                    id="cvv"
-                    placeholder="123"
-                    type="password"
-                    value={cvv}
-                    onChange={(e) => setCvv(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                    maxLength={4}
-                  />
-                </div>
-              </div>
 
-              <div className="flex items-center gap-2 p-3 rounded-lg bg-score-excellent/10 text-score-excellent text-sm">
-                <Lock className="w-4 h-4" />
-                <span>Your payment is secured with 256-bit encryption</span>
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-score-excellent/10 text-score-excellent text-sm">
+                  <Lock className="w-4 h-4" />
+                  <span>Your payment is secured with 256-bit encryption</span>
+                </div>
               </div>
 
               <Button 
