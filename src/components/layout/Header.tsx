@@ -85,7 +85,7 @@ export default function Header() {
                 {t('nav.signIn')}
               </Button>
               <Button onClick={() => navigate('/check-score')} variant="hero" className="gap-2">
-                Check Score
+                {t('nav.checkScore')}
               </Button>
             </>
           )}
