@@ -277,13 +277,13 @@ export default function Index() {
             className="gradient-primary rounded-3xl p-8 md:p-12 text-center text-primary-foreground"
           >
             <h2 className="text-3xl md:text-4xl font-bold mb-4 font-display">
-              Ready to Check Your Credit Score?
+              {t('cta.title')}
             </h2>
             <p className="text-primary-foreground/80 mb-8 max-w-xl mx-auto">
-              Join millions of Indians who trust CreditCheck for their credit monitoring needs
+              {t('cta.subtitle')}
             </p>
             <Button onClick={handleGetStarted} size="xl" className="bg-accent hover:bg-accent/90 text-accent-foreground gap-2">
-              Check Score Now
+              {t('cta.button')}
               <ArrowRight className="w-5 h-5" />
             </Button>
           </motion.div>
