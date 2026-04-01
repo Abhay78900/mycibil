@@ -46,7 +46,8 @@ export default function Header() {
         </Link>
         
         {/* Desktop nav */}
-        <div className="hidden md:flex items-center gap-4">
+        <div className="hidden md:flex items-center gap-3">
+          <LanguageSwitcher />
           {user ? (
             <>
               <Button onClick={() => navigate('/dashboard')} variant="ghost" className="gap-2">
