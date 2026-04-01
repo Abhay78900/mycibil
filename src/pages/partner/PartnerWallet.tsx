@@ -11,9 +11,15 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
-import { Wallet, Plus, Loader2, ArrowUpRight, ArrowDownLeft, FileText, Calculator } from 'lucide-react';
+import { Wallet, Plus, Loader2, ArrowUpRight, ArrowDownLeft, FileText, Calculator, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
+}
 
 export default function PartnerWallet() {
   const { user, userRole, signOut, loading } = useAuth();
@@ -31,6 +37,17 @@ export default function PartnerWallet() {
     if (!loading && user) loadData();
   }, [userRole, loading, user, navigate]);
 
+  useEffect(() => {
+    // Load Razorpay script
+    if (!document.getElementById('razorpay-script')) {
+      const script = document.createElement('script');
+      script.id = 'razorpay-script';
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.async = true;
+      document.body.appendChild(script);
+    }
+  }, []);
+
   const loadData = async () => {
     try {
       const { data: partnerData } = await supabase.from('partners').select('*').eq('owner_id', user?.id).maybeSingle();
@@ -44,16 +61,116 @@ export default function PartnerWallet() {
   const handleAddFunds = async () => {
     const amount = Number(addAmount);
     if (!amount || amount < 100) { toast.error('Minimum amount is ₹100'); return; }
+
+    if (!window.Razorpay) {
+      toast.error('Payment system is loading. Please try again.');
+      return;
+    }
+
     setIsAdding(true);
+
     try {
-      const newBalance = Number(partner.wallet_balance || 0) + amount;
-      await supabase.from('partners').update({ wallet_balance: newBalance, wallet_mode: isReportCountMode ? 'report_count' : 'amount' }).eq('id', partner.id);
       const reportsAdded = isReportCountMode ? calculateReportsFromAmount(amount) : 0;
-      await supabase.from('transactions').insert({ user_id: user?.id, partner_id: partner.id, amount, type: 'wallet_topup', status: 'success', payment_method: 'upi', description: isReportCountMode ? `Added ₹${amount} (≈ ${reportsAdded} report${reportsAdded !== 1 ? 's' : ''})` : 'Wallet top-up', metadata: isReportCountMode ? { reports_added: reportsAdded, wallet_mode: 'report_count', amount_added: amount } : { wallet_mode: 'amount' } });
-      setPartner({ ...partner, wallet_balance: newBalance });
-      toast.success(isReportCountMode ? `₹${amount} added (≈ ${reportsAdded} report${reportsAdded !== 1 ? 's' : ''})` : `₹${amount} added to wallet`);
-      setIsDialogOpen(false); setAddAmount(''); loadData();
-    } catch (error) { toast.error('Failed to add funds'); } finally { setIsAdding(false); }
+
+      // Step 1: Create Razorpay order
+      const { data: orderData, error: orderError } = await supabase.functions.invoke(
+        'create-wallet-order',
+        {
+          body: {
+            amount,
+            partnerId: partner.id,
+            userId: user?.id,
+            description: isReportCountMode
+              ? `Wallet top-up ₹${amount} (≈ ${reportsAdded} reports)`
+              : `Wallet top-up ₹${amount}`,
+          },
+        }
+      );
+
+      if (orderError || !orderData?.order_id) {
+        throw new Error(orderData?.error || 'Failed to create payment order');
+      }
+
+      // Step 2: Open Razorpay checkout
+      const options = {
+        key: orderData.key_id,
+        amount: orderData.amount,
+        currency: orderData.currency,
+        name: 'Credit Scorewala',
+        description: isReportCountMode
+          ? `Add ${reportsAdded} Report(s) to Wallet`
+          : `Wallet Top-up ₹${amount}`,
+        order_id: orderData.order_id,
+        prefill: {
+          name: partner?.name || '',
+          email: partner?.email || '',
+          contact: partner?.mobile || '',
+        },
+        theme: {
+          color: '#6366f1',
+        },
+        handler: async (response: any) => {
+          await verifyAndComplete(response, amount, reportsAdded);
+        },
+        modal: {
+          ondismiss: () => {
+            setIsAdding(false);
+            toast.info('Payment cancelled');
+          },
+        },
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.on('payment.failed', (response: any) => {
+        setIsAdding(false);
+        toast.error(`Payment failed: ${response.error?.description || 'Unknown error'}`);
+      });
+      rzp.open();
+    } catch (error: any) {
+      console.error('Payment error:', error);
+      toast.error(error.message || 'Payment failed. Please try again.');
+      setIsAdding(false);
+    }
+  };
+
+  const verifyAndComplete = async (razorpayResponse: any, amount: number, reportsAdded: number) => {
+    try {
+      toast.info('Verifying payment...');
+
+      const { data: verifyData, error: verifyError } = await supabase.functions.invoke(
+        'verify-wallet-payment',
+        {
+          body: {
+            razorpay_order_id: razorpayResponse.razorpay_order_id,
+            razorpay_payment_id: razorpayResponse.razorpay_payment_id,
+            razorpay_signature: razorpayResponse.razorpay_signature,
+            partnerId: partner.id,
+            amount,
+            walletMode: isReportCountMode ? 'report_count' : 'amount',
+            reportsAdded,
+          },
+        }
+      );
+
+      if (verifyError || !verifyData?.verified) {
+        throw new Error(verifyData?.error || 'Payment verification failed');
+      }
+
+      setPartner({ ...partner, wallet_balance: verifyData.new_balance });
+      toast.success(
+        isReportCountMode
+          ? `₹${amount} added (≈ ${reportsAdded} report${reportsAdded !== 1 ? 's' : ''})`
+          : `₹${amount} added to wallet`
+      );
+      setIsDialogOpen(false);
+      setAddAmount('');
+      loadData();
+    } catch (error: any) {
+      console.error('Verification error:', error);
+      toast.error(error.message || 'Verification failed. Contact support.');
+    } finally {
+      setIsAdding(false);
+    }
   };
 
   const reportsFromAmount = addAmount ? calculateReportsFromAmount(Number(addAmount)) : 0;
@@ -84,20 +201,29 @@ export default function PartnerWallet() {
                 </DialogTrigger>
                 <DialogContent className="w-[95vw] sm:max-w-md">
                   <DialogHeader><DialogTitle>{isReportCountMode ? 'Add Reports to Wallet' : 'Add Funds to Wallet'}</DialogTitle></DialogHeader>
-                  <div className="py-4">
-                    <Label>Amount (₹)</Label>
-                    <Input type="number" value={addAmount} onChange={(e) => setAddAmount(e.target.value)} placeholder="Enter amount" min={100} className="mt-2" />
-                    <p className="text-sm text-muted-foreground mt-2">Minimum: ₹100</p>
+                  <div className="py-4 space-y-4">
+                    <div>
+                      <Label>Amount (₹)</Label>
+                      <Input type="number" value={addAmount} onChange={(e) => setAddAmount(e.target.value)} placeholder="Enter amount" min={100} className="mt-2" />
+                      <p className="text-sm text-muted-foreground mt-2">Minimum: ₹100</p>
+                    </div>
                     {isReportCountMode && addAmount && (
-                      <div className="mt-4 p-3 bg-accent/30 rounded-lg">
+                      <div className="p-3 bg-accent/30 rounded-lg">
                         <p className="text-sm"><span className="text-muted-foreground">Reports you'll receive: </span><span className="font-bold text-primary">{reportsFromAmount}</span></p>
                         <p className="text-xs text-muted-foreground mt-1">(₹{reportUnitPrice} = 1 report)</p>
                       </div>
                     )}
+                    <div className="flex items-center gap-2 p-3 rounded-lg bg-primary/10 text-primary text-sm">
+                      <ShieldCheck className="w-4 h-4 flex-shrink-0" />
+                      <span>Secure payment via Razorpay (UPI, Cards, NetBanking)</span>
+                    </div>
                   </div>
                   <DialogFooter className="flex-col sm:flex-row gap-2">
                     <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-                    <Button onClick={handleAddFunds} disabled={isAdding}>{isAdding ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}{isReportCountMode ? `Add ${reportsFromAmount} Report(s)` : `Add ₹${addAmount || 0}`}</Button>
+                    <Button onClick={handleAddFunds} disabled={isAdding || !addAmount || Number(addAmount) < 100}>
+                      {isAdding ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                      {isReportCountMode ? `Pay ₹${addAmount || 0} for ${reportsFromAmount} Report(s)` : `Pay ₹${addAmount || 0}`}
+                    </Button>
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
