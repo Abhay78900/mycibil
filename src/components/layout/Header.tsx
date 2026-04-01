@@ -121,7 +121,7 @@ export default function Header() {
                     </Button>
                     <Button variant="ghost" className="justify-start gap-3 text-destructive" onClick={() => { setMobileOpen(false); handleSignOut(); }}>
                       <LogOut className="w-4 h-4" />
-                      Sign Out
+                      {t('nav.signOut')}
                     </Button>
                   </>
                 ) : (
