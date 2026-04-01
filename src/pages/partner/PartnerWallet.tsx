@@ -53,7 +53,7 @@ export default function PartnerWallet() {
       const { data: partnerData } = await supabase.from('partners').select('*').eq('owner_id', user?.id).maybeSingle();
       if (!partnerData) { navigate('/dashboard'); return; }
       setPartner(partnerData);
-      const { data: txns } = await supabase.from('transactions').select('*').eq('partner_id', partnerData.id).order('created_at', { ascending: false });
+      const { data: txns } = await supabase.from('transactions').select('*').eq('partner_id', partnerData.id).eq('status', 'success').order('created_at', { ascending: false });
       setTransactions(txns || []);
     } catch (error) { console.error('Error loading wallet:', error); } finally { setIsLoading(false); }
   };
