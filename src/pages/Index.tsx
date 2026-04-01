@@ -28,11 +28,18 @@ const features = [
   { icon: TrendingUp, title: 'Score Improvement Tips', description: 'Personalized recommendations' }
 ];
 
-const pricingPlans = [
-  { name: 'Single Bureau', price: 99, bureaus: ['CIBIL'], popular: false },
-  { name: 'Two Bureaus', price: 179, bureaus: ['CIBIL', 'Experian'], popular: false },
-  { name: 'Three Bureaus', price: 249, bureaus: ['CIBIL', 'Experian', 'Equifax'], popular: true },
-  { name: 'All 4 Bureaus', price: 299, bureaus: ['CIBIL', 'Experian', 'Equifax', 'CRIF'], popular: false }
+const reviews = [
+  { name: 'Rajesh Kumar', rating: 5, text: 'Got my credit report from all 4 bureaus in just 2 minutes. Very detailed and easy to understand!', location: 'Mumbai' },
+  { name: 'Priya Sharma', rating: 5, text: 'The improvement tips helped me increase my CIBIL score by 80 points in 3 months. Highly recommend!', location: 'Delhi' },
+  { name: 'Amit Patel', rating: 4, text: 'Best platform to check credit scores. The unified report view is amazing. Saved me a lot of time.', location: 'Ahmedabad' },
+  { name: 'Sneha Reddy', rating: 5, text: 'As a partner, I earn great commissions while helping my clients understand their credit health.', location: 'Hyderabad' },
+];
+
+const partnerBenefits = [
+  { icon: TrendingUp, title: 'Earn High Commissions', description: 'Earn attractive commissions on every credit report you generate for your clients' },
+  { icon: Zap, title: 'Instant Report Generation', description: 'Generate reports in real-time with our powerful API integration' },
+  { icon: Shield, title: 'Dedicated Dashboard', description: 'Get your own partner dashboard with wallet, CRM, and client management tools' },
+  { icon: Star, title: 'Grow Your Business', description: 'Expand your financial services portfolio with credit score offerings' },
 ];
 
 export default function Index() {
