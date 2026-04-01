@@ -151,10 +151,10 @@ export default function Index() {
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4 font-display">
-              Why Choose CreditCheck?
+              {t('features.title')}
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              Get the complete picture of your credit health with our comprehensive reports
+              {t('hero.subtitle')}
             </p>
           </div>
           
