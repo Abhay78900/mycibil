@@ -74,8 +74,8 @@ export default function Index() {
             </div>
             
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground leading-tight mb-6 font-display text-balance">
-              Check Your Credit Score from{' '}
-              <span className="text-accent">All 4 Bureaus</span>
+              {t('hero.title')}{' '}
+              <span className="text-accent">{t('hero.titleHighlight')}</span>
             </h1>
             
             <p className="text-lg text-muted-foreground mb-8 max-w-lg">
