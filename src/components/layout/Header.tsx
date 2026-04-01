@@ -117,7 +117,7 @@ export default function Header() {
                     </Button>
                     <Button variant="ghost" className="justify-start gap-3" onClick={() => mobileNav('/check-score')}>
                       <CreditCard className="w-4 h-4" />
-                      Check Score
+                      {t('nav.checkScore')}
                     </Button>
                     <Button variant="ghost" className="justify-start gap-3 text-destructive" onClick={() => { setMobileOpen(false); handleSignOut(); }}>
                       <LogOut className="w-4 h-4" />
