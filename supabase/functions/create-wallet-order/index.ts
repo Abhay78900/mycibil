@@ -43,7 +43,7 @@ serve(async (req) => {
     const orderPayload = {
       amount: amountInPaise,
       currency: "INR",
-      receipt: `wallet_${partnerId}_${Date.now()}`,
+      receipt: `w_${Date.now()}`,
       notes: {
         partner_id: partnerId,
         user_id: userId || "",
