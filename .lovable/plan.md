@@ -1,48 +1,77 @@
 
 
-## Progressive Web App (PWA) Setup
+# Razorpay Payment Integration Plan
 
-### Important Notes
-- This is a **React/Vite** project (not Laravel). The PWA will be implemented accordingly.
-- PWA features (offline support, install prompt) will **only work in the published/deployed version**, not in the Lovable editor preview.
-- Since you primarily want installability + standalone mode, we'll use a **simple manifest approach** plus a lightweight service worker.
+## What You Need (Requirements)
 
-### Changes
+To integrate Razorpay for real payments, you need to provide **two secrets**:
 
-**1. Create `public/manifest.json`**
-- App name: "Credit Scorewala"
-- Theme/background colors matching the app
-- Icons at 192x192 and 512x512 (we'll generate simple placeholder icons or use existing branding)
-- `display: "standalone"`, `start_url: "/"`
+1. **RAZORPAY_KEY_ID** — Your Razorpay publishable/API Key ID (starts with `rzp_test_` or `rzp_live_`)
+2. **RAZORPAY_KEY_SECRET** — Your Razorpay API Key Secret
 
-**2. Update `index.html`**
-- Link the manifest: `<link rel="manifest" href="/manifest.json">`
-- Add iOS meta tags:
-  - `<meta name="apple-mobile-web-app-capable" content="yes">`
-  - `<meta name="apple-mobile-web-app-status-bar-style" content="default">`
-  - `<meta name="apple-mobile-web-app-title" content="Credit Scorewala">`
-  - `<link rel="apple-touch-icon" href="/icon-192.png">`
-- Add `<meta name="theme-color" content="#...">`
+You can get both from: **Razorpay Dashboard → Settings → API Keys → Generate Key**
 
-**3. Create `public/sw.js`** (lightweight service worker)
-- Basic cache-first strategy for static assets
-- Network-first for API calls
-- Minimal offline fallback
+> Use `rzp_test_` keys for testing, switch to `rzp_live_` for production.
 
-**4. Add install prompt logic in `src/components/InstallPrompt.tsx`**
-- Listen for `beforeinstallprompt` event
-- Show a custom "Install App" button/banner
-- Handle the prompt acceptance flow
-- Guard against iframe/preview contexts (won't register SW in Lovable preview)
+---
 
-**5. Update `src/main.tsx`**
-- Conditionally register service worker (skip in iframe/preview)
+## How It Will Work
 
-**6. Render `<InstallPrompt />` in `src/App.tsx`**
+```text
+User clicks "Pay ₹X"
+       │
+       ▼
+Frontend calls Edge Function: create-razorpay-order
+       │  (creates order with real amount on Razorpay servers)
+       ▼
+Razorpay Checkout modal opens in browser
+       │  (user pays via UPI/Card/NetBanking/Wallet)
+       ▼
+On success, frontend calls Edge Function: verify-razorpay-payment
+       │  (server-side HMAC SHA256 signature verification)
+       ▼
+Payment verified → Report unlocked → Bureau APIs called
+```
 
-### Technical Details
-- No `vite-plugin-pwa` needed — simple manual approach
-- SW registration is guarded: won't activate in Lovable preview iframes
-- iOS doesn't support `beforeinstallprompt`, so we rely on meta tags + apple-touch-icon for "Add to Home Screen"
-- For icons, we'll create simple SVG-based PNGs or you can provide custom icons later
+---
+
+## Implementation Steps
+
+### 1. Add Razorpay Secrets
+Store `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET` as backend secrets (you'll be prompted to enter them).
+
+### 2. Add Razorpay Key ID to Frontend
+Store `RAZORPAY_KEY_ID` as a public key in the codebase (it's a publishable key, safe for frontend).
+
+### 3. Create Edge Function: `create-razorpay-order`
+- Accepts `amount`, `reportId`, `currency` (INR)
+- Calls Razorpay Orders API to create an order server-side
+- Returns `order_id` to frontend
+
+### 4. Create Edge Function: `verify-razorpay-payment`
+- Accepts `razorpay_order_id`, `razorpay_payment_id`, `razorpay_signature`
+- Verifies signature using HMAC SHA256 with the secret key
+- On success: updates transaction status, unlocks report
+- Returns verification result
+
+### 5. Update Payment.tsx
+- Remove the fake card form entirely
+- Load Razorpay checkout script dynamically
+- On "Pay" click → call `create-razorpay-order` → open Razorpay modal
+- On modal success → call `verify-razorpay-payment` → fetch bureau reports → navigate to report
+- Handle modal dismiss/failure gracefully
+
+### 6. Update CheckScore.tsx (minor)
+- Ensure the transaction record stores `payment_method: 'razorpay'` and `payment_gateway: 'razorpay'`
+
+---
+
+## What Changes
+
+| File | Change |
+|------|--------|
+| `supabase/functions/create-razorpay-order/index.ts` | **New** — creates Razorpay order |
+| `supabase/functions/verify-razorpay-payment/index.ts` | **New** — verifies payment signature |
+| `src/pages/Payment.tsx` | **Replace** fake card form with Razorpay checkout |
+| `index.html` | **Add** Razorpay checkout script tag |
 
