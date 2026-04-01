@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import Header from '@/components/layout/Header';
@@ -45,6 +46,7 @@ const partnerBenefits = [
 export default function Index() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { t } = useTranslation();
 
   const handleGetStarted = () => {
     if (user) {
@@ -68,17 +70,16 @@ export default function Index() {
           >
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent/10 text-accent mb-6">
               <Star className="w-4 h-4" />
-              <span className="text-sm font-medium">Trusted by 1M+ Indians</span>
+              <span className="text-sm font-medium">{t('hero.trustedBy')}</span>
             </div>
             
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground leading-tight mb-6 font-display text-balance">
-              Check Your Credit Score from{' '}
-              <span className="text-accent">All 4 Bureaus</span>
+              {t('hero.title')}{' '}
+              <span className="text-accent">{t('hero.titleHighlight')}</span>
             </h1>
             
             <p className="text-lg text-muted-foreground mb-8 max-w-lg">
-              Get comprehensive credit reports from CIBIL, Experian, Equifax & CRIF. 
-              Make informed financial decisions with complete visibility.
+              {t('hero.subtitle')}
             </p>
             
             <div className="flex flex-wrap gap-3 mb-8">
@@ -97,11 +98,11 @@ export default function Index() {
             
             <div className="flex flex-col sm:flex-row gap-4">
               <Button onClick={handleGetStarted} size="xl" variant="hero" className="gap-2">
-                Get Your Credit Report
+                {t('hero.cta')}
                 <ArrowRight className="w-5 h-5" />
               </Button>
               <Button onClick={() => navigate('/auth')} size="xl" variant="outline">
-                Sign In
+                {t('nav.signIn')}
               </Button>
             </div>
             
@@ -150,10 +151,10 @@ export default function Index() {
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4 font-display">
-              Why Choose CreditCheck?
+              {t('features.title')}
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              Get the complete picture of your credit health with our comprehensive reports
+              {t('hero.subtitle')}
             </p>
           </div>
           
@@ -183,9 +184,9 @@ export default function Index() {
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4 font-display">
-              What Our Users Say
+              {t('reviews.title')}
             </h2>
-            <p className="text-muted-foreground">Trusted by millions across India</p>
+            <p className="text-muted-foreground">{t('hero.trustedBy')}</p>
           </div>
           
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -233,14 +234,13 @@ export default function Index() {
                 <span className="text-sm font-medium">Partner Program</span>
               </div>
               <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4 font-display">
-                Become a CreditCheck Partner
+                {t('partner.title')}
               </h2>
               <p className="text-muted-foreground mb-6">
-                Start your own credit score business with zero investment risk. 
-                Join our growing network of 500+ partners across India and earn attractive commissions.
+                {t('partner.subtitle')}
               </p>
               <Button onClick={() => navigate('/become-partner')} size="xl" variant="hero" className="gap-2">
-                Apply as Partner
+                {t('partner.cta')}
                 <ArrowRight className="w-5 h-5" />
               </Button>
             </motion.div>
@@ -277,13 +277,13 @@ export default function Index() {
             className="gradient-primary rounded-3xl p-8 md:p-12 text-center text-primary-foreground"
           >
             <h2 className="text-3xl md:text-4xl font-bold mb-4 font-display">
-              Ready to Check Your Credit Score?
+              {t('cta.title')}
             </h2>
             <p className="text-primary-foreground/80 mb-8 max-w-xl mx-auto">
-              Join millions of Indians who trust CreditCheck for their credit monitoring needs
+              {t('cta.subtitle')}
             </p>
             <Button onClick={handleGetStarted} size="xl" className="bg-accent hover:bg-accent/90 text-accent-foreground gap-2">
-              Check Score Now
+              {t('cta.button')}
               <ArrowRight className="w-5 h-5" />
             </Button>
           </motion.div>
@@ -304,7 +304,7 @@ export default function Index() {
               Become a Partner
             </Button>
             <p className="text-sm text-muted-foreground">
-              © 2024 CreditCheck. All rights reserved.
+              © 2024 CreditCheck. {t('footer.rights')}
             </p>
           </div>
         </div>

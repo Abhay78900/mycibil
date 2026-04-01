@@ -1,0 +1,111 @@
+{
+  "brand": "CreditCheck",
+  "nav": {
+    "dashboard": "Dashboard",
+    "signIn": "Sign In",
+    "signOut": "Sign Out",
+    "checkScore": "Check Score",
+    "menu": "Menu"
+  },
+  "hero": {
+    "title": "Know Your Credit Score from",
+    "titleHighlight": "All 4 Bureaus",
+    "subtitle": "Get your credit score from CIBIL, Experian, Equifax & CRIF in one place. Make smarter financial decisions.",
+    "cta": "Check Your Score Now",
+    "trustedBy": "Trusted by 50,000+ Indians"
+  },
+  "features": {
+    "title": "Why Choose CreditCheck?",
+    "multiScore": "Multi-Bureau Scores",
+    "multiScoreDesc": "Get scores from CIBIL, Experian, Equifax & CRIF — all in one click.",
+    "instant": "Instant Reports",
+    "instantDesc": "Get your detailed credit report within seconds. No waiting.",
+    "secure": "Bank-Grade Security",
+    "secureDesc": "Your data is encrypted and protected with enterprise-level security.",
+    "insights": "AI-Powered Insights",
+    "insightsDesc": "Get personalized tips to improve your credit score with AI analysis."
+  },
+  "reviews": {
+    "title": "What Our Users Say"
+  },
+  "partner": {
+    "title": "Become a Partner",
+    "subtitle": "Join our growing network of financial partners and grow your business",
+    "cta": "Apply as Partner",
+    "benefits": {
+      "commission": "Earn High Commissions",
+      "commissionDesc": "Earn attractive commissions on every credit report generated through your referrals.",
+      "reports": "Instant Report Generation",
+      "reportsDesc": "Generate credit reports for your clients instantly from your dedicated dashboard.",
+      "dashboard": "Dedicated Dashboard",
+      "dashboardDesc": "Get a full-featured partner dashboard to manage clients, reports, and earnings.",
+      "growth": "Grow Your Business",
+      "growthDesc": "Expand your financial services offerings with our multi-bureau credit check platform."
+    }
+  },
+  "cta": {
+    "title": "Ready to Check Your Credit Score?",
+    "subtitle": "Join thousands of Indians who trust CreditCheck for their credit monitoring needs.",
+    "button": "Get Started Free"
+  },
+  "footer": {
+    "rights": "All rights reserved.",
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Service",
+    "contact": "Contact"
+  },
+  "auth": {
+    "signIn": "Sign In",
+    "signUp": "Sign Up",
+    "welcomeBack": "Welcome back",
+    "createAccount": "Create your account",
+    "fullName": "Full Name",
+    "email": "Email",
+    "password": "Password",
+    "noAccount": "Don't have an account?",
+    "hasAccount": "Already have an account?",
+    "backToHome": "Back to Home"
+  },
+  "dashboard": {
+    "welcome": "Welcome back",
+    "newReport": "New Report",
+    "latestScore": "Your Latest Credit Score",
+    "recentReports": "Recent Reports",
+    "noReports": "No reports yet",
+    "noReportsDesc": "Check your credit score to get started",
+    "checkNow": "Check Score Now",
+    "riskStatus": "Risk Status",
+    "highRisk": "High Risk",
+    "lowRisk": "Low Risk",
+    "averageScore": "Average Score"
+  },
+  "checkScore": {
+    "title": "Check Your Credit Score",
+    "step1": "Personal Details",
+    "step2": "Select Bureaus",
+    "fullName": "Full Name",
+    "panNumber": "PAN Number",
+    "dob": "Date of Birth",
+    "mobile": "Mobile Number",
+    "gender": "Gender",
+    "male": "Male",
+    "female": "Female",
+    "other": "Other",
+    "consent": "I consent to checking my credit score",
+    "continue": "Continue",
+    "back": "Back",
+    "submit": "Submit & Pay",
+    "selectBureaus": "Select Credit Bureaus",
+    "totalCost": "Total Cost"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Something went wrong",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "download": "Download",
+    "search": "Search"
+  }
+}

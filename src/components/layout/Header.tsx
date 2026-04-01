@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { CreditCard, LogOut, LayoutDashboard, User, Menu } from 'lucide-react';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,6 +24,7 @@ export default function Header() {
   const { user, profile, signOut } = useAuth();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { t } = useTranslation();
 
   const handleSignOut = async () => {
     await signOut();
@@ -44,12 +47,13 @@ export default function Header() {
         </Link>
         
         {/* Desktop nav */}
-        <div className="hidden md:flex items-center gap-4">
+        <div className="hidden md:flex items-center gap-3">
+          <LanguageSwitcher />
           {user ? (
             <>
               <Button onClick={() => navigate('/dashboard')} variant="ghost" className="gap-2">
                 <LayoutDashboard className="w-4 h-4" />
-                Dashboard
+                {t('nav.dashboard')}
               </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -65,12 +69,12 @@ export default function Header() {
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => navigate('/dashboard')}>
                     <LayoutDashboard className="w-4 h-4 mr-2" />
-                    Dashboard
+                    {t('nav.dashboard')}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
                     <LogOut className="w-4 h-4 mr-2" />
-                    Sign Out
+                    {t('nav.signOut')}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -78,17 +82,18 @@ export default function Header() {
           ) : (
             <>
               <Button onClick={() => navigate('/auth')} variant="ghost">
-                Sign In
+                {t('nav.signIn')}
               </Button>
               <Button onClick={() => navigate('/check-score')} variant="hero" className="gap-2">
-                Check Score
+                {t('nav.checkScore')}
               </Button>
             </>
           )}
         </div>
 
         {/* Mobile hamburger */}
-        <div className="md:hidden">
+        <div className="md:hidden flex items-center gap-1">
+          <LanguageSwitcher />
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon">
@@ -97,7 +102,7 @@ export default function Header() {
             </SheetTrigger>
             <SheetContent side="right" className="w-[280px]">
               <SheetHeader>
-                <SheetTitle className="text-left">Menu</SheetTitle>
+                <SheetTitle className="text-left">{t('nav.menu')}</SheetTitle>
               </SheetHeader>
               <div className="flex flex-col gap-2 mt-6">
                 {user ? (
@@ -108,25 +113,25 @@ export default function Header() {
                     </div>
                     <Button variant="ghost" className="justify-start gap-3" onClick={() => mobileNav('/dashboard')}>
                       <LayoutDashboard className="w-4 h-4" />
-                      Dashboard
+                      {t('nav.dashboard')}
                     </Button>
                     <Button variant="ghost" className="justify-start gap-3" onClick={() => mobileNav('/check-score')}>
                       <CreditCard className="w-4 h-4" />
-                      Check Score
+                      {t('nav.checkScore')}
                     </Button>
                     <Button variant="ghost" className="justify-start gap-3 text-destructive" onClick={() => { setMobileOpen(false); handleSignOut(); }}>
                       <LogOut className="w-4 h-4" />
-                      Sign Out
+                      {t('nav.signOut')}
                     </Button>
                   </>
                 ) : (
                   <>
                     <Button variant="ghost" className="justify-start" onClick={() => mobileNav('/auth')}>
-                      Sign In
+                      {t('nav.signIn')}
                     </Button>
                     <Button variant="hero" className="justify-start gap-2" onClick={() => mobileNav('/check-score')}>
                       <CreditCard className="w-4 h-4" />
-                      Check Score
+                      {t('nav.checkScore')}
                     </Button>
                   </>
                 )}
