@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { CreditCard, LogOut, LayoutDashboard, User, Menu } from 'lucide-react';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 import {
   DropdownMenu,
   DropdownMenuContent,
