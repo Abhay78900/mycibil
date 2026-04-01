@@ -46,6 +46,7 @@ const partnerBenefits = [
 export default function Index() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { t } = useTranslation();
 
   const handleGetStarted = () => {
     if (user) {
