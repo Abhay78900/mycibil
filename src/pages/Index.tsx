@@ -28,11 +28,18 @@ const features = [
   { icon: TrendingUp, title: 'Score Improvement Tips', description: 'Personalized recommendations' }
 ];
 
-const pricingPlans = [
-  { name: 'Single Bureau', price: 99, bureaus: ['CIBIL'], popular: false },
-  { name: 'Two Bureaus', price: 179, bureaus: ['CIBIL', 'Experian'], popular: false },
-  { name: 'Three Bureaus', price: 249, bureaus: ['CIBIL', 'Experian', 'Equifax'], popular: true },
-  { name: 'All 4 Bureaus', price: 299, bureaus: ['CIBIL', 'Experian', 'Equifax', 'CRIF'], popular: false }
+const reviews = [
+  { name: 'Rajesh Kumar', rating: 5, text: 'Got my credit report from all 4 bureaus in just 2 minutes. Very detailed and easy to understand!', location: 'Mumbai' },
+  { name: 'Priya Sharma', rating: 5, text: 'The improvement tips helped me increase my CIBIL score by 80 points in 3 months. Highly recommend!', location: 'Delhi' },
+  { name: 'Amit Patel', rating: 4, text: 'Best platform to check credit scores. The unified report view is amazing. Saved me a lot of time.', location: 'Ahmedabad' },
+  { name: 'Sneha Reddy', rating: 5, text: 'As a partner, I earn great commissions while helping my clients understand their credit health.', location: 'Hyderabad' },
+];
+
+const partnerBenefits = [
+  { icon: TrendingUp, title: 'Earn High Commissions', description: 'Earn attractive commissions on every credit report you generate for your clients' },
+  { icon: Zap, title: 'Instant Report Generation', description: 'Generate reports in real-time with our powerful API integration' },
+  { icon: Shield, title: 'Dedicated Dashboard', description: 'Get your own partner dashboard with wallet, CRM, and client management tools' },
+  { icon: Star, title: 'Grow Your Business', description: 'Expand your financial services portfolio with credit score offerings' },
 ];
 
 export default function Index() {
@@ -171,57 +178,91 @@ export default function Index() {
         </div>
       </section>
       
-      {/* Pricing Section */}
+      {/* Reviews Section */}
       <section className="px-4 py-16 md:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4 font-display">
-              Simple, Transparent Pricing
+              What Our Users Say
             </h2>
-            <p className="text-muted-foreground">Choose the plan that suits your needs</p>
+            <p className="text-muted-foreground">Trusted by millions across India</p>
           </div>
           
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {pricingPlans.map((plan, index) => (
+            {reviews.map((review, index) => (
               <motion.div
-                key={plan.name}
+                key={review.name}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
                 viewport={{ once: true }}
-                className={`relative p-6 rounded-2xl border-2 transition-all ${
-                  plan.popular 
-                    ? 'border-accent bg-accent/5 shadow-lg' 
-                    : 'border-border bg-card hover:border-accent/50'
-                }`}
+                className="p-6 rounded-2xl bg-card border border-border hover:shadow-lg transition-shadow"
               >
-                {plan.popular && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-accent text-accent-foreground text-xs font-semibold rounded-full">
-                    Most Popular
-                  </div>
-                )}
-                <h3 className="font-semibold text-foreground mb-2">{plan.name}</h3>
-                <div className="flex items-baseline gap-1 mb-4">
-                  <span className="text-3xl font-bold text-foreground">₹{plan.price}</span>
-                  <span className="text-muted-foreground text-sm">/report</span>
-                </div>
-                <ul className="space-y-2 mb-6">
-                  {plan.bureaus.map((bureau) => (
-                    <li key={bureau} className="flex items-center gap-2 text-sm">
-                      <CheckCircle2 className="w-4 h-4 text-accent" />
-                      <span>{bureau}</span>
-                    </li>
+                <div className="flex items-center gap-1 mb-3">
+                  {Array.from({ length: review.rating }).map((_, i) => (
+                    <Star key={i} className="w-4 h-4 fill-accent text-accent" />
                   ))}
-                </ul>
-                <Button 
-                  onClick={handleGetStarted} 
-                  variant={plan.popular ? 'hero' : 'outline'} 
-                  className="w-full"
-                >
-                  Get Started
-                </Button>
+                </div>
+                <p className="text-sm text-muted-foreground mb-4 italic">"{review.text}"</p>
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
+                    <span className="text-sm font-bold text-primary">{review.name[0]}</span>
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">{review.name}</p>
+                    <p className="text-xs text-muted-foreground">{review.location}</p>
+                  </div>
+                </div>
               </motion.div>
             ))}
+          </div>
+        </div>
+      </section>
+      
+      {/* Become a Partner Section */}
+      <section className="px-4 py-16 md:px-8 bg-card">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid md:grid-cols-2 gap-12 items-center">
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+            >
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent/10 text-accent mb-4">
+                <Star className="w-4 h-4" />
+                <span className="text-sm font-medium">Partner Program</span>
+              </div>
+              <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4 font-display">
+                Become a CreditCheck Partner
+              </h2>
+              <p className="text-muted-foreground mb-6">
+                Start your own credit score business with zero investment risk. 
+                Join our growing network of 500+ partners across India and earn attractive commissions.
+              </p>
+              <Button onClick={() => navigate('/become-partner')} size="xl" variant="hero" className="gap-2">
+                Apply as Partner
+                <ArrowRight className="w-5 h-5" />
+              </Button>
+            </motion.div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {partnerBenefits.map((benefit, index) => (
+                <motion.div
+                  key={benefit.title}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                  viewport={{ once: true }}
+                  className="p-5 rounded-2xl bg-background border border-border"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center mb-3">
+                    <benefit.icon className="w-5 h-5 text-accent" />
+                  </div>
+                  <h3 className="font-semibold text-foreground text-sm mb-1">{benefit.title}</h3>
+                  <p className="text-xs text-muted-foreground">{benefit.description}</p>
+                </motion.div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
