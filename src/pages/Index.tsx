@@ -79,8 +79,7 @@ export default function Index() {
             </h1>
             
             <p className="text-lg text-muted-foreground mb-8 max-w-lg">
-              Get comprehensive credit reports from CIBIL, Experian, Equifax & CRIF. 
-              Make informed financial decisions with complete visibility.
+              {t('hero.subtitle')}
             </p>
             
             <div className="flex flex-wrap gap-3 mb-8">
