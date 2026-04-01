@@ -184,9 +184,9 @@ export default function Index() {
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4 font-display">
-              What Our Users Say
+              {t('reviews.title')}
             </h2>
-            <p className="text-muted-foreground">Trusted by millions across India</p>
+            <p className="text-muted-foreground">{t('hero.trustedBy')}</p>
           </div>
           
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
