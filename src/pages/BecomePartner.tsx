@@ -10,6 +10,7 @@ import {
   TrendingUp, 
   CheckCircle, 
   ArrowRight,
+  ArrowLeft,
   Phone,
   Mail,
   MapPin,
@@ -170,6 +171,10 @@ export default function BecomePartner() {
       {/* Hero Section */}
       <section className="py-16 px-4">
         <div className="container mx-auto max-w-6xl">
+          <Button variant="ghost" onClick={() => navigate('/')} className="mb-6 gap-2">
+            <ArrowLeft className="w-4 h-4" />
+            Back to Home
+          </Button>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
