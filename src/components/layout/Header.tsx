@@ -131,7 +131,7 @@ export default function Header() {
                     </Button>
                     <Button variant="hero" className="justify-start gap-2" onClick={() => mobileNav('/check-score')}>
                       <CreditCard className="w-4 h-4" />
-                      Check Score
+                      {t('nav.checkScore')}
                     </Button>
                   </>
                 )}
