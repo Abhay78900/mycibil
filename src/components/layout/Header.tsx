@@ -113,7 +113,7 @@ export default function Header() {
                     </div>
                     <Button variant="ghost" className="justify-start gap-3" onClick={() => mobileNav('/dashboard')}>
                       <LayoutDashboard className="w-4 h-4" />
-                      Dashboard
+                      {t('nav.dashboard')}
                     </Button>
                     <Button variant="ghost" className="justify-start gap-3" onClick={() => mobileNav('/check-score')}>
                       <CreditCard className="w-4 h-4" />
