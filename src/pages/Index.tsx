@@ -304,7 +304,7 @@ export default function Index() {
               Become a Partner
             </Button>
             <p className="text-sm text-muted-foreground">
-              © 2024 CreditCheck. All rights reserved.
+              © 2024 CreditCheck. {t('footer.rights')}
             </p>
           </div>
         </div>
