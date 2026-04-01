@@ -24,6 +24,7 @@ export default function Header() {
   const { user, profile, signOut } = useAuth();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { t } = useTranslation();
 
   const handleSignOut = async () => {
     await signOut();
