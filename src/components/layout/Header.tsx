@@ -53,7 +53,7 @@ export default function Header() {
             <>
               <Button onClick={() => navigate('/dashboard')} variant="ghost" className="gap-2">
                 <LayoutDashboard className="w-4 h-4" />
-                Dashboard
+                {t('nav.dashboard')}
               </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
