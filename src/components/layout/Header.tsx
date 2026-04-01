@@ -127,7 +127,7 @@ export default function Header() {
                 ) : (
                   <>
                     <Button variant="ghost" className="justify-start" onClick={() => mobileNav('/auth')}>
-                      Sign In
+                      {t('nav.signIn')}
                     </Button>
                     <Button variant="hero" className="justify-start gap-2" onClick={() => mobileNav('/check-score')}>
                       <CreditCard className="w-4 h-4" />
