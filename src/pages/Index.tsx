@@ -98,11 +98,11 @@ export default function Index() {
             
             <div className="flex flex-col sm:flex-row gap-4">
               <Button onClick={handleGetStarted} size="xl" variant="hero" className="gap-2">
-                Get Your Credit Report
+                {t('hero.cta')}
                 <ArrowRight className="w-5 h-5" />
               </Button>
               <Button onClick={() => navigate('/auth')} size="xl" variant="outline">
-                Sign In
+                {t('nav.signIn')}
               </Button>
             </div>
             
