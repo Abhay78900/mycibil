@@ -91,7 +91,8 @@ export default function Header() {
         </div>
 
         {/* Mobile hamburger */}
-        <div className="md:hidden">
+        <div className="md:hidden flex items-center gap-1">
+          <LanguageSwitcher />
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon">
