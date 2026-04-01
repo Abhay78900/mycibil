@@ -82,7 +82,7 @@ export default function Header() {
           ) : (
             <>
               <Button onClick={() => navigate('/auth')} variant="ghost">
-                Sign In
+                {t('nav.signIn')}
               </Button>
               <Button onClick={() => navigate('/check-score')} variant="hero" className="gap-2">
                 Check Score
