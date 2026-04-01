@@ -102,7 +102,7 @@ export default function Header() {
             </SheetTrigger>
             <SheetContent side="right" className="w-[280px]">
               <SheetHeader>
-                <SheetTitle className="text-left">Menu</SheetTitle>
+                <SheetTitle className="text-left">{t('nav.menu')}</SheetTitle>
               </SheetHeader>
               <div className="flex flex-col gap-2 mt-6">
                 {user ? (
